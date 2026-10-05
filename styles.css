@@ -31,3 +31,16 @@ main{width:min(1040px,100%);margin:auto;padding:14px 16px calc(var(--navH) + env
 @media(max-width:430px){.clientActions{gap:6px}.editBtn,.deleteBtn{min-width:0;padding:8px 9px;font-size:12px}}
 .closingHero{display:flex;justify-content:space-between;align-items:center;gap:16px}.closingHero h3{margin:5px 0;font-size:24px}.closingTotal{text-align:right}.closingTotal strong{display:block;font-size:28px;color:#ffb81e;margin-top:3px}.closingGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.closingGrid>div{background:#1b100b;border:1px solid #4f311f;border-radius:14px;padding:12px}.closingGrid small{display:block;color:#a99991}.closingGrid b{display:block;margin-top:5px;font-size:17px}.closingActions{margin-top:14px}.archiveRow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 4px;border-top:1px solid #392117}.reportPreview{line-height:1.6;color:#ddd}.reportPreview p{margin:7px 0}
 @media(max-width:430px){.closingHero{align-items:flex-start}.closingTotal strong{font-size:22px}.closingGrid{grid-template-columns:1fr 1fr}.archiveRow .btn{white-space:nowrap}}
+
+.deliveryDateBox{display:flex;align-items:end;justify-content:space-between;gap:12px;padding:4px 0 10px}.deliveryDateBox label{display:flex;flex-direction:column;gap:7px;flex:1}.deliveryDateBox input{background:#21130d;color:#fff;border:1px solid #755035;border-radius:12px;padding:11px 12px;font:inherit;min-height:44px}.deliveryHint{font-size:13px;color:#a99991;margin:0 0 12px}.deliveryDateBox .pill{white-space:nowrap}@media(max-width:430px){.deliveryDateBox{align-items:stretch;flex-direction:column}.deliveryDateBox .pill{align-self:flex-start}}
+
+/* V14 - barra inferior */
+.bottomNav button .navAmount{display:block;font-size:clamp(13px,3vw,18px);font-weight:800;line-height:1.05;margin-top:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bottomNav button span:not(.navAmount){display:block;font-size:clamp(8px,2vw,11px);margin-top:3px;line-height:1.05;white-space:normal;overflow:visible;text-overflow:clip;}
+@media(max-width:430px){.bottomNav button span:not(.navAmount){font-size:8px;line-height:1.05}.bottomNav button .navAmount{font-size:13px}}
+@media(max-width:360px){.bottomNav button span:not(.navAmount){font-size:7px}.bottomNav button .navAmount{font-size:12px}}
+
+/* V15 - ícone próprio para Gastos/Relatórios */
+.bottomNav button .navIcon{display:block!important;font-size:clamp(19px,4vw,25px)!important;line-height:1!important;margin-top:0!important;white-space:nowrap!important;overflow:visible!important}
+@media(max-width:430px){.bottomNav button .navIcon{font-size:20px!important}}
+@media(max-width:360px){.bottomNav button .navIcon{font-size:18px!important}}

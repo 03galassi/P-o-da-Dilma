@@ -10,3 +10,8 @@ Controle de clientes, vendas, entregas, contas a receber e gastos com matéria-p
 - Gastos com matéria-prima em Mais.
 - Backup automático no Google Drive.
 - Ícones PWA e layout responsivo.
+
+
+V12: seleção de data para entregas (padrão dia seguinte) e geração/arquivamento de PDF do fechamento mensal corrigidos.
+
+V15: substituído o botão de três pontos do menu inferior por ícone de gráfico em Gastos/Relatórios.

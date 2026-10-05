@@ -12,10 +12,15 @@ state.sales=Array.isArray(state.sales)?state.sales:[];
 state.costs=Array.isArray(state.costs)?state.costs:[];
 const $=s=>document.querySelector(s);
 const money=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(Number(v||0));
-const today=()=>new Date().toISOString().slice(0,10);
+const today=()=>{const d=new Date();const p=n=>String(n).padStart(2,"0");return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`};
+const tomorrow=()=>{const d=new Date();d.setDate(d.getDate()+1);const p=n=>String(n).padStart(2,"0");return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`};
+const defaultSaleDate=()=>{const d=new Date();const day=d.getDay();d.setDate(d.getDate()+(day===6?2:1));const p=n=>String(n).padStart(2,"0");return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`};
 const monthNow=()=>today().slice(0,7);
+let deliveryViewDate=tomorrow();
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
-function save(){localStorage.setItem(KEY,JSON.stringify(state));}
+function save(){localStorage.setItem(KEY,JSON.stringify(state));updateBottomNav();}
+function receivableTotal(){return state.sales.filter(s=>(s.payment==="prazo"&&!s.paid)||(s.payment!=="prazo"&&s.delivered&&!s.paid)).reduce((a,s)=>a+Number(s.total||0),0)}
+function updateBottomNav(){const el=$("#navDueAmount");if(el)el.textContent=money(receivableTotal());updateBadges();}
 function openModal(html){$("#modalBody").innerHTML=html;$("#modal").classList.remove("hidden")}
 function closeModal(){$("#modal").classList.add("hidden")}
 $("#closeModal").onclick=closeModal; $("#modal").onclick=e=>{if(e.target.id==="modal")closeModal()};
@@ -61,9 +66,12 @@ function renderSales(){
  $("#content").innerHTML=`<h2 class="screenTitle">Vendas</h2><div class="toolbar"><button class="btn primary" onclick="newSale()">+ Nova venda</button></div><section class="panel">${list.map(s=>saleRow(s)).join("")||'<div class="empty">Nenhuma venda registrada.</div>'}</section>`;
 }
 function renderDeliveries(){
- const list=state.sales.filter(s=>s.date===today()&&!s.delivered).map(s=>({...s,c:state.clients.find(c=>c.id===s.clientId)||{name:s.clientName||"Cliente",address:s.clientAddress||""}}));
- $("#content").innerHTML=`<h2 class="screenTitle">Entregas de hoje</h2><section class="panel">${list.map(s=>`<div class="listRow"><div class="avatar">🚚</div><div><b>${esc(s.c?.name||"Cliente")}</b><div class="muted">${s.where==="trabalho"?"🏢 Trabalho":"🏠 Casa"} · ${esc(s.c?.address||"")}</div></div><a class="mapBtn" href="${maps(s.c?.address||"")}" target="_blank">🗺️</a><button class="btn primary" onclick="deliver('${s.id}')">Entregue</button></div>`).join("")||'<div class="empty">Nenhuma entrega pendente hoje.</div>'}<div class="toolbar"><button class="btn gold" onclick="openRoute()">🗺️ Abrir endereços no Maps</button></div></section>`;
+ const selected=deliveryViewDate||tomorrow();
+ const list=state.sales.filter(s=>s.date===selected&&!s.delivered).map(s=>({...s,c:state.clients.find(c=>c.id===s.clientId)||{name:s.clientName||"Cliente",address:s.clientAddress||""}}));
+ const label=new Date(`${selected}T12:00:00`).toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"2-digit",year:"numeric"});
+ $("#content").innerHTML=`<h2 class="screenTitle">Entregas</h2><section class="panel"><div class="deliveryDateBox"><label><b>Data das entregas</b><input id="deliveryDate" type="date" value="${selected}" onchange="changeDeliveryDate(this.value)"></label><span class="pill wait">${esc(label)}</span></div><div class="deliveryHint">Visualização padrão: <b>dia seguinte</b>. Você pode escolher qualquer outra data.</div>${list.map(s=>`<div class="listRow"><div class="avatar">🚚</div><div><b>${esc(s.c?.name||"Cliente")}</b><div class="muted">${s.where==="trabalho"?"🏢 Trabalho":"🏠 Casa"} · ${esc(s.c?.address||"")}</div></div><a class="mapBtn" href="${maps(s.c?.address||"")}" target="_blank">🗺️</a><button class="btn primary" onclick="deliver('${s.id}')">Entregue</button></div>`).join("")||`<div class="empty">Nenhuma entrega pendente para ${esc(label)}.</div>`}<div class="toolbar"><button class="btn gold" onclick="openRoute()">🗺️ Abrir endereços no Maps</button></div></section>`;
 }
+function changeDeliveryDate(v){deliveryViewDate=v||tomorrow();renderDeliveries()}
 function renderReceivables(){
  const due=state.sales.filter(s=>(s.payment==="prazo"&&!s.paid)||(s.payment!=="prazo"&&s.delivered&&!s.paid));
  const groups={};
@@ -88,25 +96,51 @@ function monthStats(m){
  const revenue=sales.reduce((a,s)=>a+Number(s.total||0),0);
  const avista=sales.filter(s=>s.payment!=="prazo").reduce((a,s)=>a+Number(s.total||0),0);
  const prazo=sales.filter(s=>s.payment==="prazo").reduce((a,s)=>a+Number(s.total||0),0);
- const recebido=sales.filter(s=>s.payment!=="prazo" || s.paid).reduce((a,s)=>a+Number(s.total||0),0);
- const aberto=sales.filter(s=>s.payment==="prazo" && !s.paid).reduce((a,s)=>a+Number(s.total||0),0);
+ // Recebimentos: só entra o que foi efetivamente marcado como recebido.
+ // paidAt foi adicionado nesta versão; vendas antigas sem paidAt usam a data da venda.
+ const recebimentos=state.sales.filter(s=>s.paid && String(s.paidAt||s.date||"").slice(0,7)===m);
+ const recebido=recebimentos.reduce((a,s)=>a+Number(s.total||0),0);
+ // Contas que continuam em aberto e pertencem ao mês de referência.
+ const abertoSales=state.sales.filter(s=>{
+   if(s.paid) return false;
+   if(s.payment==="prazo") return String(s.payDate||s.date||"").slice(0,7)===m;
+   return String(s.date||"").slice(0,7)===m && s.delivered;
+ });
+ const aberto=abertoSales.reduce((a,s)=>a+Number(s.total||0),0);
  const expense=costs.reduce((a,c)=>a+Number(c.total||0),0);
  const qty=sales.reduce((a,s)=>a+Number(s.qty||0),0);
- return {sales,costs,revenue,avista,prazo,recebido,aberto,expense,qty,resultado:revenue-expense};
+ const aReceberAtual=receivableTotal();
+ return {sales,costs,recebimentos,abertoSales,revenue,avista,prazo,recebido,aberto,aReceberAtual,expense,qty,resultado:revenue-expense};
 }
 function renderClosing(){
  const target=previousMonth();
+ const current=monthNow();
  const archived=[...state.reports].sort((a,b)=>String(b.month).localeCompare(String(a.month)));
  const available=closeEligible(); const existing=reportForMonth(target); const st=monthStats(target);
+ const currentStats=monthStats(current);
  const targetText=monthLabel(target);
  const status=existing?`Fechado em ${new Date(existing.closedAt).toLocaleDateString("pt-BR")}`:(available?`Fechamento disponível desde o dia 10.`:`Disponível no dia 10 de cada mês.`);
- $("#content").innerHTML=`<h2 class="screenTitle">Fechamento mensal</h2>
- <section class="panel closingHero"><div><small class="muted">Mês de referência</small><h3>${esc(targetText)}</h3><p class="muted">${status}</p></div><div class="closingTotal"><small>Vendas</small><strong>${money(st.revenue)}</strong></div></section>
- <section class="panel"><div class="panelTitle"><span>Resumo de ${esc(targetText)}</span></div><div class="closingGrid"><div><small>Vendas</small><b>${st.sales.length}</b></div><div><small>Pães vendidos</small><b>${st.qty}</b></div><div><small>Recebido</small><b>${money(st.recebido)}</b></div><div><small>Em aberto</small><b>${money(st.aberto)}</b></div><div><small>Matéria-prima</small><b>${money(st.expense)}</b></div><div><small>Resultado</small><b>${money(st.resultado)}</b></div></div>
- <div class="toolbar closingActions"><button class="btn gold" onclick="previewReport('${target}')">👁️ Visualizar resumo</button>${existing?`<button class="btn primary" onclick="viewArchivedReport('${existing.id}')">📄 Ver PDF arquivado</button>`:`<button class="btn primary" ${available?`onclick="closeMonth('${target}')"`:`disabled`} >📅 Fechar mês e gerar PDF</button>`}</div></section>
+ $("#content").innerHTML=`<div class="screenTitleRow"><h2 class="screenTitle">Gastos e Relatórios</h2><button class="btn" onclick="navigate('home')">← Voltar</button></div>
+ <section class="panel"><div class="panelTitle"><span>Relatório</span></div>
+ <div class="formGrid"><label>Mês do relatório<select id="reportMonth" onchange="renderClosingForMonth(this.value)"><option value="${current}" selected>${esc(monthLabel(current))} (atual)</option><option value="${target}">${esc(targetText)} (fechamento)</option></select></label></div>
+ <div class="closingGrid"><div><small>Vendas</small><b>${currentStats.sales.length}</b></div><div><small>Faturamento</small><b>${money(currentStats.revenue)}</b></div><div><small>Recebimentos</small><b>${money(currentStats.recebido)}</b></div><div><small>A receber</small><b>${money(currentStats.aReceberAtual)}</b></div><div><small>Gastos</small><b>${money(currentStats.expense)}</b></div><div><small>Resultado</small><b>${money(currentStats.revenue-currentStats.expense)}</b></div></div>
+ <div class="toolbar"><button class="btn gold" onclick="previewReport('${current}')">👁️ Visualizar relatório</button><button class="btn" onclick="generatePdfNow('${current}')">📄 Gerar PDF</button></div></section>
+ <section class="panel"><div class="panelTitle"><span>Fechamento mensal — ${esc(targetText)}</span><span class="pill wait">Dia 10</span></div><div class="closingGrid"><div><small>Vendas</small><b>${st.sales.length}</b></div><div><small>Pães vendidos</small><b>${st.qty}</b></div><div><small>Recebimentos</small><b>${money(st.recebido)}</b></div><div><small>A receber</small><b>${money(st.aberto)}</b></div><div><small>Gastos</small><b>${money(st.expense)}</b></div><div><small>Resultado</small><b>${money(st.resultado)}</b></div></div>
+ <p class="muted">${status}</p><div class="toolbar closingActions"><button class="btn gold" onclick="previewReport('${target}')">👁️ Visualizar resumo</button><button class="btn" onclick="generatePdfNow('${target}')">📄 Gerar PDF</button>${existing?`<button class="btn primary" onclick="viewArchivedReport('${existing.id}')">📂 Ver PDF arquivado</button>`:`<button class="btn primary" ${available?`onclick="closeMonth('${target}')"`:`disabled`} >📅 Fechar mês e arquivar PDF</button>`}</div></section>
  <section class="panel"><div class="panelTitle"><span>Relatórios arquivados</span><span class="pill wait">${archived.length}</span></div>${archived.map(r=>`<div class="archiveRow"><div><b>${esc(monthLabel(r.month))}</b><div class="muted">Fechado em ${new Date(r.closedAt).toLocaleDateString("pt-BR")}</div></div><button class="btn" onclick="viewArchivedReport('${r.id}')">📄 Ver PDF</button></div>`).join("")||'<div class="empty">Nenhum fechamento mensal arquivado.</div>'}</section>`;
 }
-function previewReport(m){const st=monthStats(m);openModal(`<h2>Resumo — ${esc(monthLabel(m))}</h2><div class="reportPreview"><p><b>Total de vendas:</b> ${money(st.revenue)}</p><p><b>Quantidade de pães:</b> ${st.qty}</p><p><b>Vendas à vista:</b> ${money(st.avista)}</p><p><b>Vendas a prazo:</b> ${money(st.prazo)}</p><p><b>Recebido:</b> ${money(st.recebido)}</p><p><b>Em aberto:</b> ${money(st.aberto)}</p><p><b>Gastos com matéria-prima:</b> ${money(st.expense)}</p><p><b>Resultado:</b> ${money(st.resultado)}</p></div><button class="btn primary" onclick="closeModal();closeMonth('${m}')">📄 Gerar PDF</button>`)}
+function renderClosingForMonth(m){
+ const st=monthStats(m);
+ const el=$("#reportMonth");
+ if(!el)return;
+ const panel=el.closest(".panel");
+ const grid=panel.querySelector(".closingGrid");
+ grid.innerHTML=`<div><small>Vendas</small><b>${st.sales.length}</b></div><div><small>Faturamento</small><b>${money(st.revenue)}</b></div><div><small>Recebimentos</small><b>${money(st.recebido)}</b></div><div><small>A receber</small><b>${money(st.aReceberAtual)}</b></div><div><small>Gastos</small><b>${money(st.expense)}</b></div><div><small>Resultado</small><b>${money(st.revenue-st.expense)}</b></div>`;
+ const buttons=panel.querySelectorAll(".toolbar button");
+ if(buttons[0])buttons[0].setAttribute("onclick",`previewReport('${m}')`);
+ if(buttons[1])buttons[1].setAttribute("onclick",`generatePdfNow('${m}')`);
+}
+function previewReport(m){const st=monthStats(m);openModal(`<h2>Relatório — ${esc(monthLabel(m))}</h2><div class="reportPreview"><p><b>Total de vendas:</b> ${money(st.revenue)}</p><p><b>Quantidade de pães:</b> ${st.qty}</p><p><b>Vendas à vista:</b> ${money(st.avista)}</p><p><b>Vendas a prazo:</b> ${money(st.prazo)}</p><p><b>Recebimentos no mês:</b> ${money(st.recebido)}</p><p><b>A receber:</b> ${money(st.aberto)}</p><p><b>A receber atual:</b> ${money(st.aReceberAtual)}</p><p><b>Gastos com matéria-prima:</b> ${money(st.expense)}</p><p><b>Resultado:</b> ${money(st.resultado)}</p></div><div class="toolbar"><button class="btn gold" onclick="closeModal();generatePdfNow('${m}')">📄 Gerar PDF</button></div>`)}
 function pdfSafe(v){return String(v??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^\x20-\x7E]/g,"?")}
 function pdfEscape(v){return pdfSafe(v).replace(/\\/g,"\\\\").replace(/\(/g,"\\(").replace(/\)/g,"\\)")}
 function buildPdf(lines){
@@ -120,17 +154,21 @@ function buildPdf(lines){
 }
 function bytesToBase64(bytes){let s="";const chunk=0x8000;for(let i=0;i<bytes.length;i+=chunk)s+=String.fromCharCode(...bytes.subarray(i,i+chunk));return btoa(s)}
 function base64ToBytes(b64){const bin=atob(b64);const out=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i);return out}
-function buildReportLines(m){const st=monthStats(m);const lines=["PAO DA DILMA - FECHAMENTO MENSAL","",`Periodo: ${monthLabel(m)}`,`Data do fechamento: ${new Date().toLocaleDateString("pt-BR")}`,"","RESUMO","----------------------------------------",`Vendas realizadas: ${st.sales.length}`,`Quantidade de paes: ${st.qty}`,`Faturamento: ${money(st.revenue)}`,`Vendas a vista: ${money(st.avista)}`,`Vendas a prazo: ${money(st.prazo)}`,`Total recebido: ${money(st.recebido)}`,`Contas em aberto: ${money(st.aberto)}`,`Gastos com materia-prima: ${money(st.expense)}`,`Resultado (vendas - custos): ${money(st.resultado)}`,"","VENDAS","----------------------------------------"];
- st.sales.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date))).forEach((s,i)=>lines.push(`${i+1}. ${s.date} - ${s.clientName||"Cliente"} - ${s.type==="doce"?"Pao doce":"Pao"} - Qtd ${s.qty||0} - ${money(s.total)} - ${s.payment==="prazo"?"A prazo":"A vista"}${s.paid?" - Pago":""}`));
+function buildReportLines(m){const st=monthStats(m);const lines=["PAO DA DILMA - RELATORIO MENSAL","",`Periodo: ${monthLabel(m)}`,`Data do relatorio: ${new Date().toLocaleDateString("pt-BR")}`,"","RESUMO","----------------------------------------",`Vendas realizadas: ${st.sales.length}`,`Quantidade de paes: ${st.qty}`,`Faturamento: ${money(st.revenue)}`,`Vendas a vista: ${money(st.avista)}`,`Vendas a prazo: ${money(st.prazo)}`,`Recebimentos no mes: ${money(st.recebido)}`,`A receber no mes: ${money(st.aberto)}`,`A receber atual: ${money(st.aReceberAtual)}`,`Gastos com materia-prima: ${money(st.expense)}`,`Resultado (vendas - custos): ${money(st.resultado)}`,"","RECEBIMENTOS","----------------------------------------"];
+ st.recebimentos.slice().sort((a,b)=>String(a.paidAt||a.date).localeCompare(String(b.paidAt||b.date))).forEach((s,i)=>lines.push(`${i+1}. ${s.paidAt||s.date} - ${s.clientName||"Cliente"} - ${money(s.total)} - ${s.payment==="prazo"?"A prazo":"A vista"}`));
+ lines.push("","CONTAS A RECEBER / EM ABERTO","----------------------------------------"); st.abertoSales.slice().sort((a,b)=>String(a.payDate||a.date).localeCompare(String(b.payDate||b.date))).forEach((s,i)=>lines.push(`${i+1}. ${s.payDate||s.date} - ${s.clientName||"Cliente"} - ${money(s.total)} - ${s.payment==="prazo"?"A prazo":"A vista aguardando recebimento"}`));
+ lines.push("","VENDAS","----------------------------------------"); st.sales.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date))).forEach((s,i)=>lines.push(`${i+1}. ${s.date} - ${s.clientName||"Cliente"} - ${s.type==="doce"?"Pao doce":"Pao"} - Qtd ${s.qty||0} - ${money(s.total)} - ${s.payment==="prazo"?"A prazo":"A vista"}${s.paid?" - Recebido":""}`));
  lines.push("","GASTOS COM MATERIA-PRIMA","----------------------------------------"); st.costs.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date))).forEach((c,i)=>lines.push(`${i+1}. ${c.date} - ${c.item} - ${c.qty||""} - ${money(c.total)}${c.supplier?" - "+c.supplier:""}`));
  lines.push("","Documento gerado pelo aplicativo Pao da Dilma.");return lines}
-function closeMonth(m){if(!closeEligible())return toast("O fechamento mensal fica disponível no dia 10.");if(reportForMonth(m))return viewArchivedReport(reportForMonth(m).id);const bytes=buildPdf(buildReportLines(m));const id=crypto.randomUUID();state.reports.push({id,month:m,closedAt:new Date().toISOString(),pdfBase64:bytesToBase64(bytes)});save();toast("Fechamento mensal arquivado em PDF!");renderClosing()}
-function viewArchivedReport(id){const r=state.reports.find(x=>x.id===id);if(!r)return toast("Relatório não encontrado.");const bytes=base64ToBytes(r.pdfBase64);const blob=new Blob([bytes],{type:"application/pdf"});const url=URL.createObjectURL(blob);window.open(url,"_blank");setTimeout(()=>URL.revokeObjectURL(url),60000)}
+function openPdfBytes(bytes){const blob=new Blob([bytes],{type:"application/pdf"});const url=URL.createObjectURL(blob);const w=window.open(url,"_blank");if(!w){const a=document.createElement("a");a.href=url;a.download="pao-da-dilma-fechamento.pdf";a.click();toast("O PDF foi baixado. Se o navegador bloquear a nova aba, use o arquivo baixado.")}setTimeout(()=>URL.revokeObjectURL(url),60000)}
+function generatePdfNow(m){const bytes=buildPdf(buildReportLines(m));openPdfBytes(bytes)}
+function closeMonth(m){if(!closeEligible())return toast("O fechamento mensal pode ser feito a partir do dia 10.");const existing=reportForMonth(m);if(existing){viewArchivedReport(existing.id);return}const bytes=buildPdf(buildReportLines(m));const id=crypto.randomUUID();state.reports.push({id,month:m,closedAt:new Date().toISOString(),pdfBase64:bytesToBase64(bytes)});save();toast("Fechamento mensal arquivado em PDF!");renderClosing();openPdfBytes(bytes)}
+function viewArchivedReport(id){const r=state.reports.find(x=>x.id===id);if(!r)return toast("Relatório não encontrado.");const bytes=base64ToBytes(r.pdfBase64);openPdfBytes(bytes)}
 function renderMore(){
  const last=localStorage.getItem("pao_drive_last_backup");
  const connected=localStorage.getItem("pao_drive_connected")==="1";
- $("#content").innerHTML=`<h2 class="screenTitle">Mais</h2>
- <section class="panel"><div class="moreGrid"><button class="moreCard" onclick="renderCosts()"><span>🧾</span><b>Gastos</b><small>Matéria-prima</small></button><button class="moreCard" onclick="newCost()"><span>＋</span><b>Lançar gasto</b><small>Compra de ingredientes</small></button><button class="moreCard" onclick="renderClosing()"><span>📅</span><b>Fechamento mensal</b><small>Dia 10 • Relatórios em PDF</small></button></div></section>
+ $("#content").innerHTML=`<div class="screenTitleRow"><h2 class="screenTitle">Gastos e Relatórios</h2><button class="btn" onclick="navigate('home')">← Voltar</button></div>
+ <section class="panel"><div class="moreGrid"><button class="moreCard" onclick="renderCosts()"><span>🧾</span><b>Gastos</b><small>Matéria-prima</small></button><button class="moreCard" onclick="renderClosing()"><span>📅</span><b>Relatórios</b><small>Fechamento mensal e PDF</small></button></div></section>
  <section class="panel drivePanel"><h3>☁️ Backup no Google Drive</h3><p class="muted">Os dados ficam salvos neste aparelho. O Google Drive só é atualizado quando você tocar em “Fazer backup agora”.</p><div id="driveStatus" class="driveStatus">${last?"Último backup: "+new Date(last).toLocaleString("pt-BR"):connected?"Google Drive conectado.":"Google Drive ainda não conectado."}</div><div class="toolbar"><button class="btn gold" onclick="driveAuth()">☁️ Conectar Google Drive</button><button class="btn primary" onclick="backupNow()">💾 Fazer backup agora</button><button class="btn" onclick="restoreNow()">📥 Restaurar backup</button></div><div class="toolbar"><button class="btn" onclick="driveDisconnect()">Desconectar Drive</button></div></section>`
 }
 function newCost(){
@@ -169,27 +207,28 @@ function newSale(pref="pao"){
    return;
  }
  openModal(`<h2>Nova venda</h2><form class="form" id="saleForm">
- <label>Cliente<select name="client" required>${state.clients.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("")}</select></label>
+ <label>Cliente<select name="client" required><option value="" selected>Selecione o cliente</option>${state.clients.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("")}</select></label>
  <div class="formGrid"><label>Tipo<select name="type"><option value="pao" ${pref==="pao"?"selected":""}>Pão</option><option value="doce" ${pref==="doce"?"selected":""}>Pão doce</option></select></label>
  <label>Quantidade<input name="qty" id="saleQty" type="number" min="1" value="1" required></label></div>
  <div class="formGrid"><label>Tipo do pão<select name="sugar"><option value="sem">Sem açúcar</option><option value="acucar">Açucarado por cima</option></select></label>
  <label>Valor unitário<select name="unitPrice" id="unitPrice"><option value="12">R$ 12,00</option><option value="14">R$ 14,00</option><option value="16">R$ 16,00</option><option value="18" selected>R$ 18,00</option></select></label></div>
  <label>Valor total<input name="total" id="saleTotal" type="number" step="0.01" min="0" value="18.00" readonly required></label>
  <div class="formGrid"><label>Pagamento<select name="payment" id="pay"><option value="avista">À vista</option><option value="prazo">A prazo</option></select></label>
- <label>Data da entrega<input name="date" type="date" value="${today()}" required></label></div>
+ <label>Data da entrega<input name="date" type="date" value="${defaultSaleDate()}" required></label></div>
  <div id="payDateBox" class="hidden"><label>Data para pagamento<input name="payDate" type="date"></label></div>
  <label>Onde entregar<select name="where"><option value="casa">🏠 Casa</option><option value="trabalho">🏢 Trabalho</option></select></label>
  <button class="btn primary" type="submit">Registrar venda</button></form>`);
  $("#pay").onchange=e=>$("#payDateBox").classList.toggle("hidden",e.target.value!=="prazo");
  const updateSaleTotal=()=>{const qty=Math.max(1,Number($("#saleQty").value||1));const unit=Number($("#unitPrice").value||12);$("#saleTotal").value=(qty*unit).toFixed(2)};
  $("#saleQty").oninput=updateSaleTotal; $("#unitPrice").onchange=updateSaleTotal;
- $("#saleForm").onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const client=state.clients.find(c=>c.id===f.get("client"));const s={id:crypto.randomUUID(),clientId:f.get("client"),clientName:client?.name||"Cliente",clientPhone:client?.phone||"",clientAddress:client?.address||"",type:f.get("type"),qty:Number(f.get("qty")),unitPrice:Number(f.get("unitPrice")),sugar:f.get("sugar"),total:Number(f.get("total")),payment:f.get("payment"),payDate:f.get("payDate")||null,date:f.get("date"),where:f.get("where"),delivered:false,time:new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})};state.sales.push(s);save();closeModal();toast("Venda registrada!");navigate("sales")};
+ $("#saleForm").onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const clientId=String(f.get("client")||"").trim();if(!clientId){toast("Selecione um cliente antes de registrar a venda.");$("select[name=client]").focus();return;}const client=state.clients.find(c=>c.id===clientId);if(!client){toast("Cliente inválido. Selecione um cliente cadastrado.");return;}const s={id:crypto.randomUUID(),clientId:clientId,clientName:client.name,clientPhone:client.phone||"",clientAddress:client.address||"",type:f.get("type"),qty:Number(f.get("qty")),unitPrice:Number(f.get("unitPrice")),sugar:f.get("sugar"),total:Number(f.get("total")),payment:f.get("payment"),payDate:f.get("payDate")||null,date:f.get("date"),where:f.get("where"),delivered:false,time:new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})};state.sales.push(s);save();closeModal();toast("Venda registrada!");navigate("sales")}
 }
 function deliver(id){const s=state.sales.find(x=>x.id===id);if(s){s.delivered=true;save();renderDeliveries();toast("Entrega marcada como concluída!")}}
-function payGroup(k){const [cid,month]=k.split("_");state.sales.filter(s=>s.clientId===cid&&(s.payDate||s.date).slice(0,7)===month&&!s.paid).forEach(s=>s.paid=true);save();renderReceivables();toast("Recebimento registrado!")}
+function payGroup(k){const [cid,month]=k.split("_");state.sales.filter(s=>s.clientId===cid&&(s.payDate||s.date).slice(0,7)===month&&!s.paid).forEach(s=>{s.paid=true;s.paidAt=today()});save();renderReceivables();toast("Recebimento registrado!")}
 function charge(cid,total){const c=state.clients.find(x=>x.id===cid);if(!c)return;wa(c.phone,`Tudo bem ${c.name}, tem uma notinha sua aqui, são ${money(total)}. Consegue mandar pix pra mim?`)}
-function openRoute(){const list=state.sales.filter(s=>s.date===today()&&!s.delivered).map(s=>state.clients.find(c=>c.id===s.clientId)?.address).filter(Boolean);if(!list.length)return toast("Não há entregas pendentes.");window.open(maps(list.join(" | ")),"_blank")}
-function updateBadges(){const pending=state.sales.filter(s=>s.date===today()&&!s.delivered).length;$("#deliveryBadge").textContent=pending;$("#notifyCount").textContent=state.sales.filter(s=>(s.payment==="prazo"&&!s.paid&&s.payDate<today())||(s.payment!=="prazo"&&s.delivered&&!s.paid)).length}
+function openRoute(){const selected=deliveryViewDate||tomorrow();const list=state.sales.filter(s=>s.date===selected&&!s.delivered).map(s=>state.clients.find(c=>c.id===s.clientId)?.address).filter(Boolean);if(!list.length)return toast("Não há entregas pendentes para a data selecionada.");window.open(maps(list.join(" | ")),"_blank")}
+function updateBadges(){const pending=state.sales.filter(s=>s.date===today()&&!s.delivered).length;const db=$("#deliveryBadge");if(db)db.textContent=pending;const nb=$("#notifyCount");if(nb)nb.textContent=state.sales.filter(s=>(s.payment==="prazo"&&!s.paid&&s.payDate<today())||(s.payment!=="prazo"&&s.delivered&&!s.paid)).length;const nav=$("#navDueAmount");if(nav)nav.textContent=money(receivableTotal())}
 $("#notifyBtn").onclick=()=>navigate("receivables");
 renderHome();
+updateBottomNav();
 if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
