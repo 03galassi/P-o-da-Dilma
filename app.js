@@ -1,31 +1,95 @@
-const KEY='pao_na_porta_v1';
-let db=JSON.parse(localStorage.getItem(KEY)||'{"clients":[],"sales":[]}');
-const save=()=>localStorage.setItem(KEY,JSON.stringify(db));
-let screen='home'; let deferredPrompt=null;
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('installBtn').hidden=false});
-document.getElementById('installBtn').onclick=async()=>{if(deferredPrompt){deferredPrompt.prompt();deferredPrompt=null}};
-const brl=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-const dateBR=d=>new Date(d+'T12:00:00').toLocaleDateString('pt-BR');
+const KEY="pao_da_dilma_v3";
+const state=JSON.parse(localStorage.getItem(KEY)||'{"clients":[],"sales":[]}');
+const $=s=>document.querySelector(s);
+const money=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(Number(v||0));
 const today=()=>new Date().toISOString().slice(0,10);
-const monthKey=d=>d.slice(0,7);
-const client=id=>db.clients.find(c=>c.id===id);
-function nav(){document.querySelectorAll('.bottom button').forEach(b=>b.classList.toggle('active',b.dataset.screen===screen));}
-function render(){nav(); const c=document.getElementById('content'); if(screen==='home')c.innerHTML=home(); if(screen==='clients')c.innerHTML=clients(); if(screen==='sales')c.innerHTML=sales(); if(screen==='receivables')c.innerHTML=receivables(); if(screen==='deliveries')c.innerHTML=deliveries(); bind();}
-document.querySelectorAll('.bottom button').forEach(b=>b.onclick=()=>{screen=b.dataset.screen;render()});
-function home(){const t=today(), ds=db.sales.filter(s=>s.deliveryDate===t), due=db.sales.filter(s=>s.payment==='prazo'&&s.status!=='paid'); const todayTotal=db.sales.filter(s=>s.date===t).reduce((a,s)=>a+s.total,0); const overdue=due.filter(s=>s.dueDate<t).reduce((a,s)=>a+s.total,0);return `<section class="hero"><h2>Bom dia! 🥖</h2><div class="muted">Controle simples das vendas e entregas de pão.</div><div class="actions"><button class="btn primary" data-action="newSale">＋ Nova venda</button><button class="btn secondary" data-action="newClient">＋ Cliente</button></div></section><div class="grid"><div class="stat">Vendas hoje<b>${brl(todayTotal)}</b></div><div class="stat">Entregas<b>${ds.length}</b></div><div class="stat">A receber<b>${brl(due.reduce((a,s)=>a+s.total,0))}</b></div><div class="stat">Vencido<b>${brl(overdue)}</b></div></div><div class="card"><div class="row"><h3>Próximas entregas</h3><button class="btn secondary" data-screen2="deliveries">Ver todas</button></div>${ds.slice(0,5).map(deliveryRow).join('')||'<div class="empty">Nenhuma entrega para hoje.</div>'}</div>`}
-function clients(){return `<div class="row"><div><h2>Clientes</h2><div class="muted">Nome, telefone e endereço.</div></div><button class="btn primary" data-action="newClient">＋</button></div>${db.clients.map(c=>`<div class="card"><div class="row"><div><h3>${esc(c.name)}</h3><div>${esc(c.phone)}</div><div class="muted">${esc(c.address)}</div></div><button class="btn secondary" data-edit-client="${c.id}">Editar</button></div></div>`).join('')||'<div class="empty">Cadastre o primeiro cliente.</div>'}`}
-function sales(){return `<div class="row"><div><h2>Vendas</h2><div class="muted">Histórico das vendas lançadas.</div></div><button class="btn primary" data-action="newSale">＋</button></div>${db.sales.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(s=>{const c=client(s.clientId);return `<div class="card"><div class="row"><div><h3>${esc(c?.name||'Cliente removido')}</h3><div>${s.quantity} pão(ões) • ${s.type==='acucar'?'Com açúcar':'Sem açúcar'}</div><div class="muted">Venda ${dateBR(s.date)} • Entrega ${dateBR(s.deliveryDate)}</div></div><div class="money">${brl(s.total)}</div></div><div class="actions"><span class="pill">${s.payment==='avista'?'À vista':'A prazo'}</span>${s.payment==='prazo'?`<span class="pill ${s.status==='paid'?'green':s.dueDate<today()?'red':'gold'}">${s.status==='paid'?'PAGO':'Vence '+dateBR(s.dueDate)}</span>`:''}<span class="pill">${s.place==='trabalho'?'🏢 Trabalho':'🏠 Casa'}</span></div></div>`}).join('')||'<div class="empty">Nenhuma venda lançada.</div>'}`}
-function receivables(){const groups={};db.sales.filter(s=>s.payment==='prazo').forEach(s=>{const k=s.clientId+'|'+monthKey(s.dueDate);(groups[k]??=[]).push(s)});return `<h2>Contas a receber</h2><div class="muted">Vendas a prazo agrupadas por cliente e mês.</div>${Object.entries(groups).sort((a,b)=>b[0].localeCompare(a[0])).map(([k,arr])=>{const c=client(arr[0].clientId), total=arr.reduce((x,s)=>x+s.total,0), paid=arr.every(s=>s.status==='paid'), due=arr[0].dueDate;return `<div class="card"><div class="row"><div><h3>${esc(c?.name||'Cliente')}</h3><div>${arr.length} venda(s) • fechamento ${monthKey(due)}</div></div><div class="money">${brl(total)}</div></div><div class="actions"><span class="pill ${paid?'green':due<today()?'red':'gold'}">${paid?'PAGO':due<today()?'VENCIDO':'A VENCER'}</span><span class="muted">Vencimento ${dateBR(due)}</span></div><div class="actions">${!paid?`<button class="btn success" data-pay-group="${k}">✓ Marcar pago</button>`:''}${!paid&&due<today()?`<button class="btn primary" data-whats-group="${k}">💬 Enviar WhatsApp</button>`:''}</div></div>`}).join('')||'<div class="empty">Nenhuma venda a prazo.</div>'}`}
-function deliveries(){const t=today(), arr=db.sales.filter(s=>s.deliveryDate===t);return `<div class="row"><div><h2>Entregas de hoje</h2><div class="muted">${arr.length} entrega(s) programada(s).</div></div><button class="btn primary" data-action="openRoute">🗺️ Rota</button></div><div class="notice">Toque no endereço para abrir a navegação. A otimização automática por proximidade pode ser adicionada ao conectar um serviço de mapas.</div>${arr.map(deliveryRow).join('')||'<div class="empty">Nenhuma entrega para hoje.</div>'}`}
-function deliveryRow(s){const c=client(s.clientId);return `<div class="card"><div class="row"><div><h3>${esc(c?.name||'Cliente')}</h3><div>${s.quantity} pão(ões) • ${s.type==='acucar'?'Com açúcar':'Sem açúcar'} • ${s.place==='trabalho'?'🏢 Trabalho':'🏠 Casa'}</div><div class="muted">${esc(c?.address||'')}</div></div><a class="btn secondary map" target="_blank" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c?.address||'')}">📍</a></div></div>`}
-function modal(html){document.getElementById('modalBody').innerHTML=html;document.getElementById('modal').classList.remove('hidden')}
-function closeModal(){document.getElementById('modal').classList.add('hidden')}
-document.getElementById('modal').onclick=e=>{if(e.target.id==='modal')closeModal()};
-function newClient(existing){modal(`<button class="close" data-close>✕</button><h2>${existing?'Editar':'Novo'} cliente</h2><form id="clientForm"><div class="field"><label>Nome</label><input id="cn" required value="${esc(existing?.name||'')}"></div><div class="field"><label>Telefone</label><input id="cp" required inputmode="tel" placeholder="(00) 00000-0000" value="${esc(existing?.phone||'')}"></div><div class="field"><label>Endereço de entrega</label><input id="ca" required placeholder="Rua, número, bairro, cidade" value="${esc(existing?.address||'')}"></div><button class="btn primary full">Salvar cliente</button></form>`);document.getElementById('clientForm').onsubmit=e=>{e.preventDefault();const o={id:existing?.id||crypto.randomUUID(),name:cn.value.trim(),phone:cp.value.trim(),address:ca.value.trim()};if(existing)db.clients=db.clients.map(x=>x.id===o.id?o:x);else db.clients.push(o);save();closeModal();render()}}
-function newSale(){if(!db.clients.length){alert('Cadastre um cliente primeiro.');screen='clients';render();return}modal(`<button class="close" data-close>✕</button><h2>Nova venda 🥖</h2><form id="saleForm"><div class="field"><label>Cliente</label><select id="sc" required>${db.clients.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select></div><div class="two"><div class="field"><label>Tipo</label><select id="st"><option value="acucar">Com açúcar</option><option value="sem_acucar">Sem açúcar</option></select></div><div class="field"><label>Quantidade</label><input id="sq" type="number" min="1" value="1" required></div></div><div class="two"><div class="field"><label>Valor unitário (R$)</label><input id="su" type="number" min="0" step="0.01" required></div><div class="field"><label>Data da venda</label><input id="sd" type="date" value="${today()}" required></div></div><div class="two"><div class="field"><label>Data da entrega</label><input id="sdd" type="date" value="${today()}" required></div><div class="field"><label>Onde entregar</label><select id="sp"><option value="casa">🏠 Casa</option><option value="trabalho">🏢 Trabalho</option></select></div></div><div class="field"><label>Pagamento</label><select id="sPay"><option value="avista">À vista</option><option value="prazo">A prazo</option></select></div><div class="field" id="dueWrap" style="display:none"><label>Data para pagamento</label><input id="sDue" type="date"></div><div class="notice">Valor total: <b id="stotal">R$ 0,00</b></div><button class="btn primary full">Lançar venda</button></form>`);const upd=()=>stotal.textContent=brl((+sq.value||0)*(+su.value||0));sq.oninput=upd;su.oninput=upd;sPay.onchange=()=>{dueWrap.style.display=sPay.value==='prazo'?'block':'none';sDue.required=sPay.value==='prazo'};document.getElementById('saleForm').onsubmit=e=>{e.preventDefault();const total=(+sq.value||0)*(+su.value||0);db.sales.push({id:crypto.randomUUID(),clientId:sc.value,type:st.value,quantity:+sq.value,unit:+su.value,total,date:sd.value,deliveryDate:sdd.value,place:sp.value,payment:sPay.value,dueDate:sPay.value==='prazo'?sDue.value:sd.value,status:sPay.value==='prazo'?'open':'paid'});save();closeModal();render()}}
-function groupByKey(k){return db.sales.filter(s=>s.clientId+'|'+monthKey(s.dueDate)===k)}
-function bind(){document.querySelectorAll('[data-action="newClient"]').forEach(x=>x.onclick=()=>newClient());document.querySelectorAll('[data-action="newSale"]').forEach(x=>x.onclick=()=>newSale());document.querySelectorAll('[data-edit-client]').forEach(x=>x.onclick=()=>newClient(client(x.dataset.editClient)));document.querySelectorAll('[data-close]').forEach(x=>x.onclick=closeModal);document.querySelectorAll('[data-screen2]').forEach(x=>x.onclick=()=>{screen=x.dataset.screen2;render()});document.querySelectorAll('[data-pay-group]').forEach(x=>x.onclick=()=>{groupByKey(x.dataset.payGroup).forEach(s=>s.status='paid');save();render()});document.querySelectorAll('[data-whats-group]').forEach(x=>x.onclick=()=>{const a=groupByKey(x.dataset.whatsGroup),c=client(a[0].clientId),total=a.reduce((n,s)=>n+s.total,0);const phone=(c?.phone||'').replace(/\D/g,'');const text=`Tudo bem ${c?.name||''}, tem uma notinha sua aqui, são ${brl(total)}. Consegue mandar pix pra mim?`;window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(text)}`,'_blank')});document.querySelector('[data-action="openRoute"]')?.addEventListener('click',()=>{const arr=db.sales.filter(s=>s.deliveryDate===today());if(!arr.length)return;const addresses=arr.map(s=>client(s.clientId)?.address).filter(Boolean);const url='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(addresses[addresses.length-1])+'&waypoints='+encodeURIComponent(addresses.slice(0,-1).join('|'));window.open(url,'_blank')})}
-function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
-render();
+const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+function save(){localStorage.setItem(KEY,JSON.stringify(state));}
+function openModal(html){$("#modalBody").innerHTML=html;$("#modal").classList.remove("hidden")}
+function closeModal(){$("#modal").classList.add("hidden")}
+$("#closeModal").onclick=closeModal; $("#modal").onclick=e=>{if(e.target.id==="modal")closeModal()};
+function toast(t){let x=document.createElement("div");x.className="toast";x.textContent=t;document.body.appendChild(x);setTimeout(()=>x.remove(),2200)}
+function wa(phone,msg){let p=String(phone||"").replace(/\D/g,"");if(p.length===10)p="55"+p;if(p.length===11)p="55"+p;location.href=`https://wa.me/${p}?text=${encodeURIComponent(msg)}`}
+function maps(addr){return "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(addr)}
 
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+function renderHome(){
+ const sales=state.sales.filter(s=>s.date===today());
+ const total=sales.reduce((a,s)=>a+Number(s.total),0);
+ const due=state.sales.filter(s=>s.payment==="prazo"&&s.paid!==true);
+ const deliveries=sales.filter(s=>!s.delivered).length;
+ $("#content").innerHTML=`
+ <section class="hero"><img src="assets/hero.jpg"><div class="heroOverlay"><h1>PÃO<br><span class="gold">DA DILMA</span></h1><p>🚚 ENTREGA RÁPIDA &nbsp; ★ QUALIDADE SEMPRE &nbsp; ♥ CLIENTES SATISFEITOS</p></div></section>
+ <section class="stats">
+  <div class="stat"><div class="ico">🛒</div><small>Vendas hoje</small><strong>${money(total)}</strong><small>${sales.length} vendas</small></div>
+  <div class="stat"><div class="ico">🚚</div><small>Entregas hoje</small><strong>${deliveries}</strong><small>a realizar</small></div>
+  <div class="stat"><div class="ico">👥</div><small>Clientes</small><strong>${state.clients.length}</strong><small>cadastrados</small></div>
+  <div class="stat"><div class="ico">💰</div><small>A receber</small><strong>${money(due.reduce((a,s)=>a+Number(s.total),0))}</strong><small>${new Set(due.map(s=>s.clientId)).size} clientes</small></div>
+ </section>
+ <section class="actions"><button class="action sale" onclick="newSale()">🛒 NOVA VENDA ›</button><button class="action client" onclick="newClient()">👤 NOVO CLIENTE ›</button></section>
+ <section class="products">
+  <div class="product" onclick="newSale('pao')"><img src="assets/pao.jpg"><h3>PÃO</h3></div>
+  <div class="product" onclick="newSale('doce')"><img src="assets/pao_doce.jpg"><h3>PÃO DOCE</h3></div>
+ </section>
+ <section class="panel"><div class="panelTitle">◷ Últimas vendas <button class="btn" onclick="navigate('sales')">Ver todas ›</button></div>
+ ${sales.slice(-3).reverse().map(s=>saleRow(s)).join("") || '<div class="empty">Nenhuma venda registrada hoje.</div>'}</section>`;
+ updateBadges();
+}
+function saleRow(s){
+ const c=state.clients.find(x=>x.id===s.clientId)||{name:"Cliente"};
+ return `<div class="listRow"><div class="avatar">${esc(c.name.split(" ").map(x=>x[0]).slice(0,2).join(""))}</div><div><b>${esc(c.name)}</b><div class="muted">${s.time||""}</div></div><div class="details muted">${s.qty} ${s.type==="pao"?"pães":"pães doces"} · ${s.sugar==="acucar"?"açucarado":"sem açúcar"}</div><div class="amount"><span class="pill ${s.delivered?"ok":"wait"}">${s.delivered?"Entregue":"A entregar"}</span><br><b>${money(s.total)}</b></div></div>`
+}
+function renderClients(filter=""){
+ const list=state.clients.filter(c=>(c.name+" "+c.phone+" "+c.address).toLowerCase().includes(filter.toLowerCase()));
+ $("#content").innerHTML=`<h2 class="screenTitle">Clientes</h2><div class="toolbar"><button class="btn primary" onclick="newClient()">+ Novo cliente</button></div><section class="panel">${list.map(c=>`<div class="listRow"><div class="avatar">${esc(c.name.split(" ").map(x=>x[0]).slice(0,2).join(""))}</div><div><b>${esc(c.name)}</b><div class="muted">${esc(c.phone)} · ${esc(c.address)}</div></div><a class="mapBtn" href="${maps(c.address)}" target="_blank">📍</a><button class="btn" onclick="editClient('${c.id}')">Editar</button></div>`).join("")||'<div class="empty">Nenhum cliente encontrado.</div>'}</section>`;
+}
+function renderSales(){
+ const list=[...state.sales].reverse();
+ $("#content").innerHTML=`<h2 class="screenTitle">Vendas</h2><div class="toolbar"><button class="btn primary" onclick="newSale()">+ Nova venda</button></div><section class="panel">${list.map(s=>saleRow(s)).join("")||'<div class="empty">Nenhuma venda registrada.</div>'}</section>`;
+}
+function renderDeliveries(){
+ const list=state.sales.filter(s=>s.date===today()&&!s.delivered).map(s=>({...s,c:state.clients.find(c=>c.id===s.clientId)}));
+ $("#content").innerHTML=`<h2 class="screenTitle">Entregas de hoje</h2><section class="panel">${list.map(s=>`<div class="listRow"><div class="avatar">🚚</div><div><b>${esc(s.c?.name||"Cliente")}</b><div class="muted">${s.where==="trabalho"?"🏢 Trabalho":"🏠 Casa"} · ${esc(s.c?.address||"")}</div></div><a class="mapBtn" href="${maps(s.c?.address||"")}" target="_blank">🗺️</a><button class="btn primary" onclick="deliver('${s.id}')">Entregue</button></div>`).join("")||'<div class="empty">Nenhuma entrega pendente hoje.</div>'}<div class="toolbar"><button class="btn gold" onclick="openRoute()">🗺️ Abrir endereços no Maps</button></div></section>`;
+}
+function renderReceivables(){
+ const due=state.sales.filter(s=>s.payment==="prazo"&&!s.paid);
+ const groups={};
+ due.forEach(s=>{const c=state.clients.find(c=>c.id===s.clientId);const month=s.payDate?.slice(0,7)||s.date.slice(0,7);const k=s.clientId+"_"+month;(groups[k]??={client:c,month,total:0,sales:[]});groups[k].total+=Number(s.total);groups[k].sales.push(s)});
+ $("#content").innerHTML=`<h2 class="screenTitle">A receber</h2><section class="panel">${Object.entries(groups).map(([k,g])=>`<div class="listRow"><div class="avatar">💰</div><div><b>${esc(g.client?.name||"Cliente")}</b><div class="muted">${g.month} · ${g.sales.length} venda(s)</div></div><div><b>${money(g.total)}</b><div class="muted ${g.sales.some(s=>s.payDate<today())?'danger':''}">${g.sales.some(s=>s.payDate<today())?'VENCIDO':'A vencer'}</div></div><div><button class="btn gold" onclick="payGroup('${k}')">Recebido</button>${g.sales.some(s=>s.payDate<today())?`<button class="btn" onclick="charge('${g.client.id}','${g.total}')">WhatsApp</button>`:""}</div></div>`).join("")||'<div class="empty">Nenhuma conta em aberto.</div>'}</section>`;
+}
+function renderMore(){ $("#content").innerHTML=`<h2 class="screenTitle">Mais</h2><section class="panel"><button class="btn" onclick="if(confirm('Apagar todos os dados deste aparelho?')){localStorage.removeItem(KEY);location.reload()}">Limpar dados</button></section>`}
+function navigate(screen){document.querySelectorAll(".bottomNav button").forEach(b=>b.classList.toggle("active",b.dataset.screen===screen)); if(screen==="home")renderHome();if(screen==="clients")renderClients($("#globalSearch").value);if(screen==="sales")renderSales();if(screen==="deliveries")renderDeliveries();if(screen==="receivables")renderReceivables();if(screen==="more")renderMore()}
+document.querySelectorAll(".bottomNav button").forEach(b=>b.onclick=()=>navigate(b.dataset.screen));
+$("#globalSearch").oninput=e=>{if(document.querySelector(".bottomNav button.active")?.dataset.screen==="clients")renderClients(e.target.value)};
+function newClient(existing=null){
+ openModal(`<h2>${existing?"Editar":"Novo"} cliente</h2><form class="form" id="clientForm">
+ <label>Nome<input name="name" required value="${esc(existing?.name||"")}"></label>
+ <label>Telefone<input name="phone" required placeholder="(00) 00000-0000" value="${esc(existing?.phone||"")}"></label>
+ <label>Endereço de entrega<input name="address" required value="${esc(existing?.address||"")}"></label>
+ <button class="btn primary" type="submit">Salvar cliente</button></form>`);
+ $("#clientForm").onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const c=existing||{id:crypto.randomUUID()};c.name=f.get("name");c.phone=f.get("phone");c.address=f.get("address");if(!existing)state.clients.push(c);save();closeModal();toast("Cliente salvo!");navigate("clients")};
+}
+function editClient(id){newClient(state.clients.find(c=>c.id===id))}
+function newSale(pref="pao"){
+ if(!state.clients.length){toast("Cadastre um cliente primeiro.");newClient();return}
+ openModal(`<h2>Nova venda</h2><form class="form" id="saleForm">
+ <label>Cliente<select name="client" required>${state.clients.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("")}</select></label>
+ <div class="formGrid"><label>Tipo<select name="type"><option value="pao" ${pref==="pao"?"selected":""}>Pão</option><option value="doce" ${pref==="doce"?"selected":""}>Pão doce</option></select></label>
+ <label>Quantidade<input name="qty" type="number" min="1" value="10" required></label></div>
+ <div class="formGrid"><label>Tipo do pão<select name="sugar"><option value="sem">Sem açúcar</option><option value="acucar">Açucarado por cima</option></select></label>
+ <label>Valor total<input name="total" type="number" step="0.01" min="0" required></label></div>
+ <div class="formGrid"><label>Pagamento<select name="payment" id="pay"><option value="avista">À vista</option><option value="prazo">A prazo</option></select></label>
+ <label>Data da entrega<input name="date" type="date" value="${today()}" required></label></div>
+ <div id="payDateBox" class="hidden"><label>Data para pagamento<input name="payDate" type="date"></label></div>
+ <label>Onde entregar<select name="where"><option value="casa">🏠 Casa</option><option value="trabalho">🏢 Trabalho</option></select></label>
+ <button class="btn primary" type="submit">Registrar venda</button></form>`);
+ $("#pay").onchange=e=>$("#payDateBox").classList.toggle("hidden",e.target.value!=="prazo");
+ $("#saleForm").onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const s={id:crypto.randomUUID(),clientId:f.get("client"),type:f.get("type"),qty:Number(f.get("qty")),sugar:f.get("sugar"),total:Number(f.get("total")),payment:f.get("payment"),payDate:f.get("payDate")||null,date:f.get("date"),where:f.get("where"),delivered:false,time:new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})};state.sales.push(s);save();closeModal();toast("Venda registrada!");navigate("sales")};
+}
+function deliver(id){const s=state.sales.find(x=>x.id===id);if(s){s.delivered=true;save();renderDeliveries();toast("Entrega marcada como concluída!")}}
+function payGroup(k){const [cid,month]=k.split("_");state.sales.filter(s=>s.clientId===cid&&(s.payDate||s.date).slice(0,7)===month&&!s.paid).forEach(s=>s.paid=true);save();renderReceivables();toast("Recebimento registrado!")}
+function charge(cid,total){const c=state.clients.find(x=>x.id===cid);if(!c)return;wa(c.phone,`Tudo bem ${c.name}, tem uma notinha sua aqui, são ${money(total)}. Consegue mandar pix pra mim?`)}
+function openRoute(){const list=state.sales.filter(s=>s.date===today()&&!s.delivered).map(s=>state.clients.find(c=>c.id===s.clientId)?.address).filter(Boolean);if(!list.length)return toast("Não há entregas pendentes.");window.open(maps(list.join(" | ")),"_blank")}
+function updateBadges(){const pending=state.sales.filter(s=>s.date===today()&&!s.delivered).length;$("#deliveryBadge").textContent=pending;$("#notifyCount").textContent=state.sales.filter(s=>s.payment==="prazo"&&!s.paid&&s.payDate<today()).length}
+$("#notifyBtn").onclick=()=>navigate("receivables");
+renderHome();
+if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});

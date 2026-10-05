@@ -1,1 +1,9 @@
-{"name":"Pão na Porta","short_name":"Pão na Porta","start_url":"./","display":"standalone","background_color":"#f7efe5","theme_color":"#8b4f20","icons":[]}
+{
+  "name":"Pão da Dilma",
+  "short_name":"Pão da Dilma",
+  "start_url":"./",
+  "display":"standalone",
+  "background_color":"#100905",
+  "theme_color":"#170d08",
+  "icons":[]
+}

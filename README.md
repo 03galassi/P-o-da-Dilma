@@ -1,14 +1,9 @@
-# Pão na Porta
-
-Aplicativo web responsivo para vendas e entregas de pão.
-
-## Primeira versão
+# Pão da Dilma
+Aplicativo web/PWA para controle local de vendas e entregas de pão.
+- Funciona em um único celular/tablet.
+- Dados salvos no armazenamento local do navegador.
 - Clientes: nome, telefone e endereço.
-- Vendas: com açúcar/sem açúcar, quantidade, valor, data da venda, data da entrega, casa/trabalho e à vista/a prazo.
-- Contas a prazo agrupadas por cliente e mês de vencimento.
-- Contas vencidas com mensagem pronta no WhatsApp.
-- Entregas do dia e abertura no Google Maps.
-- PWA para adicionar à tela inicial do celular/tablet.
-
-## Importante
-Esta versão inicial usa `localStorage` para funcionar imediatamente como protótipo. Para uso compartilhado entre vários celulares, conecte o projeto a um banco online (recomendação: Supabase Free) e substitua as funções de leitura/gravação do `app.js` por chamadas ao banco.
+- Vendas: pão/pão doce, açúcar por cima/sem açúcar, quantidade, valor, pagamento, data de entrega e casa/trabalho.
+- Prazo agrupado por cliente e mês.
+- Cobrança vencida abre WhatsApp com mensagem automática.
+- Entregas e abertura de endereços no Google Maps.
