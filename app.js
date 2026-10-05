@@ -1,34 +1,41 @@
 const KEY="pao_da_dilma_v3";
-const state=JSON.parse(localStorage.getItem(KEY)||'{"clients":[],"sales":[]}');
+const stored=JSON.parse(localStorage.getItem(KEY)||'{}');
+const state=Object.assign({clients:[],sales:[],costs:[]},stored);
+state.clients=Array.isArray(state.clients)?state.clients:[];
+state.sales=Array.isArray(state.sales)?state.sales:[];
+state.costs=Array.isArray(state.costs)?state.costs:[];
 const $=s=>document.querySelector(s);
 const money=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(Number(v||0));
 const today=()=>new Date().toISOString().slice(0,10);
+const monthNow=()=>today().slice(0,7);
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 function save(){localStorage.setItem(KEY,JSON.stringify(state)); if(typeof scheduleBackup==="function") scheduleBackup();}
 function openModal(html){$("#modalBody").innerHTML=html;$("#modal").classList.remove("hidden")}
 function closeModal(){$("#modal").classList.add("hidden")}
 $("#closeModal").onclick=closeModal; $("#modal").onclick=e=>{if(e.target.id==="modal")closeModal()};
-function toast(t){let x=document.createElement("div");x.className="toast";x.textContent=t;document.body.appendChild(x);setTimeout(()=>x.remove(),2200)}
+function toast(t){let x=document.createElement("div");x.className="toast";x.textContent=t;document.body.appendChild(x);setTimeout(()=>x.remove(),2400)}
 function wa(phone,msg){let p=String(phone||"").replace(/\D/g,"");if(p.length===10)p="55"+p;if(p.length===11)p="55"+p;location.href=`https://wa.me/${p}?text=${encodeURIComponent(msg)}`}
-function maps(addr){return "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(addr)}
+function maps(addr){return "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(addr||"")}
+function imageFallback(img,kind){img.style.display="none";img.parentElement.classList.add("imageFallback",kind||"")}
 
 function renderHome(){
  const sales=state.sales.filter(s=>s.date===today());
  const total=sales.reduce((a,s)=>a+Number(s.total),0);
  const due=state.sales.filter(s=>s.payment==="prazo"&&s.paid!==true);
  const deliveries=sales.filter(s=>!s.delivered).length;
+ const costsMonth=state.costs.filter(c=>String(c.date||"").slice(0,7)===monthNow()).reduce((a,c)=>a+Number(c.total||0),0);
  $("#content").innerHTML=`
- <section class="hero"><img src="assets/hero.jpg"><div class="heroOverlay"><h1>PÃO<br><span class="gold">DA DILMA</span></h1><p>🚚 ENTREGA RÁPIDA &nbsp; ★ QUALIDADE SEMPRE &nbsp; ♥ CLIENTES SATISFEITOS</p></div></section>
+ <section class="hero"><img src="./assets/hero.jpg" alt="Pão da Dilma" onerror="imageFallback(this,'heroFallback')"><div class="heroOverlay"><h1>PÃO<br><span class="gold">DA DILMA</span></h1><p>🚚 ENTREGA RÁPIDA &nbsp; ★ QUALIDADE SEMPRE &nbsp; ♥ CLIENTES SATISFEITOS</p></div></section>
  <section class="stats">
   <div class="stat"><div class="ico">🛒</div><small>Vendas hoje</small><strong>${money(total)}</strong><small>${sales.length} vendas</small></div>
   <div class="stat"><div class="ico">🚚</div><small>Entregas hoje</small><strong>${deliveries}</strong><small>a realizar</small></div>
   <div class="stat"><div class="ico">👥</div><small>Clientes</small><strong>${state.clients.length}</strong><small>cadastrados</small></div>
   <div class="stat"><div class="ico">💰</div><small>A receber</small><strong>${money(due.reduce((a,s)=>a+Number(s.total),0))}</strong><small>${new Set(due.map(s=>s.clientId)).size} clientes</small></div>
  </section>
- <section class="actions"><button class="action sale" onclick="newSale()">🛒 NOVA VENDA ›</button><button class="action client" onclick="newClient()">👤 NOVO CLIENTE ›</button></section>
+ <section class="actions"><button class="action sale" onclick="newSale()">🛒 NOVA VENDA <span>›</span></button><button class="action client" onclick="newClient()">👤 NOVO CLIENTE <span>›</span></button></section>
  <section class="products">
-  <div class="product" onclick="newSale('pao')"><img src="assets/pao.jpg"><h3>PÃO</h3></div>
-  <div class="product" onclick="newSale('doce')"><img src="assets/pao_doce.jpg"><h3>PÃO DOCE</h3></div>
+  <div class="product" onclick="newSale('pao')"><img src="./assets/pao.jpg" alt="Pão" onerror="imageFallback(this,'breadFallback')"><h3>PÃO</h3></div>
+  <div class="product" onclick="newSale('doce')"><img src="./assets/pao_doce.jpg" alt="Pão doce" onerror="imageFallback(this,'sweetFallback')"><h3>PÃO DOCE</h3></div>
  </section>
  <section class="panel"><div class="panelTitle">◷ Últimas vendas <button class="btn" onclick="navigate('sales')">Ver todas ›</button></div>
  ${sales.slice(-3).reverse().map(s=>saleRow(s)).join("") || '<div class="empty">Nenhuma venda registrada hoje.</div>'}</section>`;
@@ -56,12 +63,31 @@ function renderReceivables(){
  due.forEach(s=>{const c=state.clients.find(c=>c.id===s.clientId);const month=s.payDate?.slice(0,7)||s.date.slice(0,7);const k=s.clientId+"_"+month;(groups[k]??={client:c,month,total:0,sales:[]});groups[k].total+=Number(s.total);groups[k].sales.push(s)});
  $("#content").innerHTML=`<h2 class="screenTitle">A receber</h2><section class="panel">${Object.entries(groups).map(([k,g])=>`<div class="listRow"><div class="avatar">💰</div><div><b>${esc(g.client?.name||"Cliente")}</b><div class="muted">${g.month} · ${g.sales.length} venda(s)</div></div><div><b>${money(g.total)}</b><div class="muted ${g.sales.some(s=>s.payDate<today())?'danger':''}">${g.sales.some(s=>s.payDate<today())?'VENCIDO':'A vencer'}</div></div><div><button class="btn gold" onclick="payGroup('${k}')">Recebido</button>${g.sales.some(s=>s.payDate<today())?`<button class="btn" onclick="charge('${g.client.id}','${g.total}')">WhatsApp</button>`:""}</div></div>`).join("")||'<div class="empty">Nenhuma conta em aberto.</div>'}</section>`;
 }
+function renderCosts(){
+ const current=state.costs.filter(c=>String(c.date||"").slice(0,7)===monthNow());
+ const total=current.reduce((a,c)=>a+Number(c.total||0),0);
+ $("#content").innerHTML=`<h2 class="screenTitle">Custos de matéria-prima</h2>
+ <section class="panel costSummary"><div><small class="muted">Total deste mês</small><strong>${money(total)}</strong></div><button class="btn primary" onclick="newCost()">+ Lançar custo</button></section>
+ <section class="panel">${[...state.costs].sort((a,b)=>String(b.date).localeCompare(String(a.date))).map(c=>`<div class="listRow costRow"><div class="avatar">🧾</div><div><b>${esc(c.item)}</b><div class="muted">${esc(c.date)}${c.supplier?" · "+esc(c.supplier):""}</div></div><div class="details muted">${c.qty?esc(c.qty)+" · ":""}${esc(c.note||"")}</div><div class="amount"><b>${money(c.total)}</b><br><button class="btn" onclick="deleteCost('${c.id}')">Excluir</button></div></div>`).join("")||'<div class="empty">Nenhum custo de matéria-prima lançado.</div>'}</section>`;
+}
 function renderMore(){
  const last=localStorage.getItem("pao_drive_last_backup");
+ const connected=localStorage.getItem("pao_drive_connected")==="1";
  $("#content").innerHTML=`<h2 class="screenTitle">Mais</h2>
- <section class="panel drivePanel"><h3>☁️ Backup no Google Drive</h3><p class="muted">Os dados continuam salvos neste aparelho e, quando conectado, uma cópia é atualizada automaticamente no seu Google Drive.</p><div id="driveStatus" class="driveStatus">${last?"Último backup: "+new Date(last).toLocaleString("pt-BR"):"Google Drive ainda não conectado."}</div><div class="toolbar"><button class="btn gold" onclick="driveAuth()">☁️ Conectar Google Drive</button><button class="btn primary" onclick="backupNow()">💾 Fazer backup agora</button><button class="btn" onclick="restoreNow()">📥 Restaurar backup</button></div><div class="toolbar"><button class="btn" onclick="driveDisconnect()">Desconectar Drive</button></div></section>
+ <section class="panel"><div class="moreGrid"><button class="moreCard" onclick="renderCosts()"><span>🧾</span><b>Custos</b><small>Matéria-prima</small></button><button class="moreCard" onclick="newCost()"><span>＋</span><b>Lançar custo</b><small>Compra de ingredientes</small></button></div></section>
+ <section class="panel drivePanel"><h3>☁️ Backup no Google Drive</h3><p class="muted">Os dados continuam salvos neste aparelho e, quando conectado, uma cópia é atualizada automaticamente no seu Google Drive.</p><div id="driveStatus" class="driveStatus">${last?"Último backup: "+new Date(last).toLocaleString("pt-BR"):connected?"Google Drive conectado.":"Google Drive ainda não conectado."}</div><div class="toolbar"><button class="btn gold" onclick="driveAuth()">☁️ Conectar Google Drive</button><button class="btn primary" onclick="backupNow()">💾 Fazer backup agora</button><button class="btn" onclick="restoreNow()">📥 Restaurar backup</button></div><div class="toolbar"><button class="btn" onclick="driveDisconnect()">Desconectar Drive</button></div></section>
  <section class="panel"><h3>⚠️ Dados deste aparelho</h3><p class="muted">Não apague os dados locais sem ter um backup atualizado no Google Drive.</p><button class="btn" onclick="if(confirm('Apagar todos os dados deste aparelho?')){localStorage.removeItem(KEY);location.reload()}">Limpar dados</button></section>`
 }
+function newCost(){
+ openModal(`<h2>Lançar custo de matéria-prima</h2><form class="form" id="costForm">
+ <div class="formGrid"><label>Data<input name="date" type="date" value="${today()}" required></label><label>Valor total<input name="total" type="number" step="0.01" min="0.01" placeholder="0,00" required></label></div>
+ <label>Matéria-prima / item<input name="item" required placeholder="Ex.: farinha de trigo"></label>
+ <div class="formGrid"><label>Quantidade<input name="qty" placeholder="Ex.: 10 kg"></label><label>Fornecedor (opcional)<input name="supplier" placeholder="Nome do fornecedor"></label></div>
+ <label>Observação (opcional)<textarea name="note" rows="2" placeholder="Ex.: compra para produção da semana"></textarea></label>
+ <button class="btn primary" type="submit">Salvar custo</button></form>`);
+ $("#costForm").onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);state.costs.push({id:crypto.randomUUID(),date:f.get("date"),item:f.get("item"),qty:f.get("qty"),supplier:f.get("supplier"),total:Number(f.get("total")),note:f.get("note")});save();closeModal();toast("Custo lançado!");renderCosts()};
+}
+function deleteCost(id){if(!confirm("Excluir este custo?"))return;state.costs=state.costs.filter(c=>c.id!==id);save();renderCosts();toast("Custo excluído.")}
 function navigate(screen){document.querySelectorAll(".bottomNav button").forEach(b=>b.classList.toggle("active",b.dataset.screen===screen)); if(screen==="home")renderHome();if(screen==="clients")renderClients($("#globalSearch").value);if(screen==="sales")renderSales();if(screen==="deliveries")renderDeliveries();if(screen==="receivables")renderReceivables();if(screen==="more")renderMore()}
 document.querySelectorAll(".bottomNav button").forEach(b=>b.onclick=()=>navigate(b.dataset.screen));
 $("#globalSearch").oninput=e=>{if(document.querySelector(".bottomNav button.active")?.dataset.screen==="clients")renderClients(e.target.value)};
@@ -75,7 +101,10 @@ function newClient(existing=null){
 }
 function editClient(id){newClient(state.clients.find(c=>c.id===id))}
 function newSale(pref="pao"){
- if(!state.clients.length){toast("Cadastre um cliente primeiro.");newClient();return}
+ if(!state.clients.length){
+   openModal(`<div class="emptySale"><div class="emptySaleIcon">🛒</div><h2>Nova venda</h2><p>Para registrar uma venda, primeiro é necessário ter pelo menos um cliente cadastrado.</p><button class="btn primary" onclick="closeModal();newClient()">+ Cadastrar cliente</button></div>`);
+   return;
+ }
  openModal(`<h2>Nova venda</h2><form class="form" id="saleForm">
  <label>Cliente<select name="client" required>${state.clients.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("")}</select></label>
  <div class="formGrid"><label>Tipo<select name="type"><option value="pao" ${pref==="pao"?"selected":""}>Pão</option><option value="doce" ${pref==="doce"?"selected":""}>Pão doce</option></select></label>

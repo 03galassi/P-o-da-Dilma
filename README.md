@@ -1,11 +1,36 @@
-# Pão da Dilma
+# Pão da Dilma — V6
 
-Aplicativo web mobile para cadastro de clientes, vendas, entregas e contas a receber.
+Versão responsiva para celular/tablet, com:
 
-## Backup Google Drive
-A versão com backup usa a API Google Drive. Antes de publicar, configure no arquivo `drive.js` o seu OAuth Client ID no campo `GOOGLE_CLIENT_ID`/`DRIVE_CONFIG.CLIENT_ID`.
+- imagens do pão e pão doce incluídas no pacote;
+- fallback visual caso uma imagem não carregue;
+- botão **NOVA VENDA** abrindo sempre o fluxo de venda; se não houver cliente, o app explica e oferece o cadastro;
+- interface adaptável a diferentes tamanhos de tela, incluindo iPhone pequeno;
+- ícone personalizado para instalação na tela inicial (iOS e Android/PWA);
+- controle de **custos de matéria-prima** com data, item, quantidade, fornecedor, valor e observação;
+- backup local + integração com Google Drive da V5;
+- restauração dos dados pelo Google Drive.
 
-Use uma credencial OAuth 2.0 do tipo **Aplicativo da Web**, com a origem JavaScript do GitHub Pages, por exemplo:
-`https://03galassi.github.io`
+## Importante ao publicar no GitHub Pages
 
-O app solicita somente o escopo `drive.file`, para limitar o acesso aos arquivos usados pelo aplicativo. Após conectar, ele mantém os dados locais e atualiza automaticamente o arquivo `pao-da-dilma-dados.json` no Drive. Também há botões para backup manual e restauração.
+Envie **todos os arquivos e a pasta `assets`**, mantendo a estrutura:
+
+```text
+index.html
+app.js
+styles.css
+drive.js
+manifest.json
+sw.js
+assets/
+  hero.jpg
+  pao.jpg
+  pao_doce.jpg
+  icon-180.png
+  icon-192.png
+  icon-512.png
+```
+
+Depois de publicar, se o navegador mostrar uma versão antiga, faça uma atualização forçada ou remova o atalho antigo da tela inicial e crie novamente depois que a nova versão carregar.
+
+O Google Drive continua dependendo do Client ID OAuth configurado no `drive.js`.
