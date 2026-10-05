@@ -1,9 +1,11 @@
 # Pão da Dilma
-Aplicativo web/PWA para controle local de vendas e entregas de pão.
-- Funciona em um único celular/tablet.
-- Dados salvos no armazenamento local do navegador.
-- Clientes: nome, telefone e endereço.
-- Vendas: pão/pão doce, açúcar por cima/sem açúcar, quantidade, valor, pagamento, data de entrega e casa/trabalho.
-- Prazo agrupado por cliente e mês.
-- Cobrança vencida abre WhatsApp com mensagem automática.
-- Entregas e abertura de endereços no Google Maps.
+
+Aplicativo web mobile para cadastro de clientes, vendas, entregas e contas a receber.
+
+## Backup Google Drive
+A versão com backup usa a API Google Drive. Antes de publicar, configure no arquivo `drive.js` o seu OAuth Client ID no campo `GOOGLE_CLIENT_ID`/`DRIVE_CONFIG.CLIENT_ID`.
+
+Use uma credencial OAuth 2.0 do tipo **Aplicativo da Web**, com a origem JavaScript do GitHub Pages, por exemplo:
+`https://03galassi.github.io`
+
+O app solicita somente o escopo `drive.file`, para limitar o acesso aos arquivos usados pelo aplicativo. Após conectar, ele mantém os dados locais e atualiza automaticamente o arquivo `pao-da-dilma-dados.json` no Drive. Também há botões para backup manual e restauração.

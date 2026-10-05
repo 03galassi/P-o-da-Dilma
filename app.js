@@ -4,7 +4,7 @@ const $=s=>document.querySelector(s);
 const money=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(Number(v||0));
 const today=()=>new Date().toISOString().slice(0,10);
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
-function save(){localStorage.setItem(KEY,JSON.stringify(state));}
+function save(){localStorage.setItem(KEY,JSON.stringify(state)); if(typeof scheduleBackup==="function") scheduleBackup();}
 function openModal(html){$("#modalBody").innerHTML=html;$("#modal").classList.remove("hidden")}
 function closeModal(){$("#modal").classList.add("hidden")}
 $("#closeModal").onclick=closeModal; $("#modal").onclick=e=>{if(e.target.id==="modal")closeModal()};
@@ -56,7 +56,12 @@ function renderReceivables(){
  due.forEach(s=>{const c=state.clients.find(c=>c.id===s.clientId);const month=s.payDate?.slice(0,7)||s.date.slice(0,7);const k=s.clientId+"_"+month;(groups[k]??={client:c,month,total:0,sales:[]});groups[k].total+=Number(s.total);groups[k].sales.push(s)});
  $("#content").innerHTML=`<h2 class="screenTitle">A receber</h2><section class="panel">${Object.entries(groups).map(([k,g])=>`<div class="listRow"><div class="avatar">💰</div><div><b>${esc(g.client?.name||"Cliente")}</b><div class="muted">${g.month} · ${g.sales.length} venda(s)</div></div><div><b>${money(g.total)}</b><div class="muted ${g.sales.some(s=>s.payDate<today())?'danger':''}">${g.sales.some(s=>s.payDate<today())?'VENCIDO':'A vencer'}</div></div><div><button class="btn gold" onclick="payGroup('${k}')">Recebido</button>${g.sales.some(s=>s.payDate<today())?`<button class="btn" onclick="charge('${g.client.id}','${g.total}')">WhatsApp</button>`:""}</div></div>`).join("")||'<div class="empty">Nenhuma conta em aberto.</div>'}</section>`;
 }
-function renderMore(){ $("#content").innerHTML=`<h2 class="screenTitle">Mais</h2><section class="panel"><button class="btn" onclick="if(confirm('Apagar todos os dados deste aparelho?')){localStorage.removeItem(KEY);location.reload()}">Limpar dados</button></section>`}
+function renderMore(){
+ const last=localStorage.getItem("pao_drive_last_backup");
+ $("#content").innerHTML=`<h2 class="screenTitle">Mais</h2>
+ <section class="panel drivePanel"><h3>☁️ Backup no Google Drive</h3><p class="muted">Os dados continuam salvos neste aparelho e, quando conectado, uma cópia é atualizada automaticamente no seu Google Drive.</p><div id="driveStatus" class="driveStatus">${last?"Último backup: "+new Date(last).toLocaleString("pt-BR"):"Google Drive ainda não conectado."}</div><div class="toolbar"><button class="btn gold" onclick="driveAuth()">☁️ Conectar Google Drive</button><button class="btn primary" onclick="backupNow()">💾 Fazer backup agora</button><button class="btn" onclick="restoreNow()">📥 Restaurar backup</button></div><div class="toolbar"><button class="btn" onclick="driveDisconnect()">Desconectar Drive</button></div></section>
+ <section class="panel"><h3>⚠️ Dados deste aparelho</h3><p class="muted">Não apague os dados locais sem ter um backup atualizado no Google Drive.</p><button class="btn" onclick="if(confirm('Apagar todos os dados deste aparelho?')){localStorage.removeItem(KEY);location.reload()}">Limpar dados</button></section>`
+}
 function navigate(screen){document.querySelectorAll(".bottomNav button").forEach(b=>b.classList.toggle("active",b.dataset.screen===screen)); if(screen==="home")renderHome();if(screen==="clients")renderClients($("#globalSearch").value);if(screen==="sales")renderSales();if(screen==="deliveries")renderDeliveries();if(screen==="receivables")renderReceivables();if(screen==="more")renderMore()}
 document.querySelectorAll(".bottomNav button").forEach(b=>b.onclick=()=>navigate(b.dataset.screen));
 $("#globalSearch").oninput=e=>{if(document.querySelector(".bottomNav button.active")?.dataset.screen==="clients")renderClients(e.target.value)};

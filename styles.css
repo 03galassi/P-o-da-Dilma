@@ -56,3 +56,4 @@ main{max-width:1040px;margin:auto;padding:14px 16px 100px}
  .actions{gap:9px}.action{font-size:17px;min-height:62px;padding:12px}.products{gap:9px}.product{height:175px}.product h3{font-size:22px;left:13px;bottom:11px}
  .panel{padding:11px;border-radius:18px}.panelTitle{font-size:19px}.listRow{grid-template-columns:42px 1fr auto;gap:8px}.details{grid-column:2/4}.amount{grid-column:3}.bottomNav{height:72px}.bottomNav button{font-size:20px}.bottomNav button span{font-size:10px}
 }
+.drivePanel h3{margin:2px 0 8px;font-size:21px}.driveStatus{padding:10px 12px;border-radius:12px;background:#2a1710;border:1px solid #5b3926;color:#ffd28b;margin:10px 0;font-size:13px}.driveStatus.ok{color:#aaf2bd;border-color:#27653d;background:#10281a}
