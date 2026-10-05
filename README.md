@@ -4,7 +4,7 @@ Controle de clientes, vendas, entregas, contas a receber e gastos com matéria-p
 
 - Venda: quantidade padrão 1.
 - Valores unitários rápidos: R$ 12, R$ 14, R$ 16 e R$ 18.
-- Valor total calculado automaticamente.
+- Valor total calculado somente quando solicitado.
 - Clientes: editar e excluir.
 - Exclusão de cliente preserva o histórico das vendas e é bloqueada quando há contas em aberto.
 - Gastos com matéria-prima em Mais.

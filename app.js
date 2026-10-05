@@ -15,7 +15,7 @@ const money=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).
 const today=()=>new Date().toISOString().slice(0,10);
 const monthNow=()=>today().slice(0,7);
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
-function save(){localStorage.setItem(KEY,JSON.stringify(state)); if(typeof scheduleBackup==="function") scheduleBackup();}
+function save(){localStorage.setItem(KEY,JSON.stringify(state));}
 function openModal(html){$("#modalBody").innerHTML=html;$("#modal").classList.remove("hidden")}
 function closeModal(){$("#modal").classList.add("hidden")}
 $("#closeModal").onclick=closeModal; $("#modal").onclick=e=>{if(e.target.id==="modal")closeModal()};
@@ -131,7 +131,7 @@ function renderMore(){
  const connected=localStorage.getItem("pao_drive_connected")==="1";
  $("#content").innerHTML=`<h2 class="screenTitle">Mais</h2>
  <section class="panel"><div class="moreGrid"><button class="moreCard" onclick="renderCosts()"><span>🧾</span><b>Gastos</b><small>Matéria-prima</small></button><button class="moreCard" onclick="newCost()"><span>＋</span><b>Lançar gasto</b><small>Compra de ingredientes</small></button><button class="moreCard" onclick="renderClosing()"><span>📅</span><b>Fechamento mensal</b><small>Dia 10 • Relatórios em PDF</small></button></div></section>
- <section class="panel drivePanel"><h3>☁️ Backup no Google Drive</h3><p class="muted">Os dados continuam salvos neste aparelho e, quando conectado, uma cópia é atualizada automaticamente no seu Google Drive.</p><div id="driveStatus" class="driveStatus">${last?"Último backup: "+new Date(last).toLocaleString("pt-BR"):connected?"Google Drive conectado.":"Google Drive ainda não conectado."}</div><div class="toolbar"><button class="btn gold" onclick="driveAuth()">☁️ Conectar Google Drive</button><button class="btn primary" onclick="backupNow()">💾 Fazer backup agora</button><button class="btn" onclick="restoreNow()">📥 Restaurar backup</button></div><div class="toolbar"><button class="btn" onclick="driveDisconnect()">Desconectar Drive</button></div></section>`
+ <section class="panel drivePanel"><h3>☁️ Backup no Google Drive</h3><p class="muted">Os dados ficam salvos neste aparelho. O Google Drive só é atualizado quando você tocar em “Fazer backup agora”.</p><div id="driveStatus" class="driveStatus">${last?"Último backup: "+new Date(last).toLocaleString("pt-BR"):connected?"Google Drive conectado.":"Google Drive ainda não conectado."}</div><div class="toolbar"><button class="btn gold" onclick="driveAuth()">☁️ Conectar Google Drive</button><button class="btn primary" onclick="backupNow()">💾 Fazer backup agora</button><button class="btn" onclick="restoreNow()">📥 Restaurar backup</button></div><div class="toolbar"><button class="btn" onclick="driveDisconnect()">Desconectar Drive</button></div></section>`
 }
 function newCost(){
  openModal(`<h2>Lançar gasto com matéria-prima</h2><form class="form" id="costForm">
