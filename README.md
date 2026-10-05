@@ -15,3 +15,6 @@ Controle de clientes, vendas, entregas, contas a receber e gastos com matéria-p
 V12: seleção de data para entregas (padrão dia seguinte) e geração/arquivamento de PDF do fechamento mensal corrigidos.
 
 V15: substituído o botão de três pontos do menu inferior por ícone de gráfico em Gastos/Relatórios.
+
+
+V17: tela inicial sem valor de A receber (exibe apenas R$), backup do Google Drive restaurado e botões de backup organizados, com cache atualizado.

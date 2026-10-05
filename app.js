@@ -20,7 +20,7 @@ let deliveryViewDate=tomorrow();
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 function save(){localStorage.setItem(KEY,JSON.stringify(state));updateBottomNav();}
 function receivableTotal(){return state.sales.filter(s=>(s.payment==="prazo"&&!s.paid)||(s.payment!=="prazo"&&s.delivered&&!s.paid)).reduce((a,s)=>a+Number(s.total||0),0)}
-function updateBottomNav(){const el=$("#navDueAmount");if(el)el.textContent=money(receivableTotal());updateBadges();}
+function updateBottomNav(){const el=$("#navDueAmount");if(el)el.textContent="R$";updateBadges();}
 function openModal(html){$("#modalBody").innerHTML=html;$("#modal").classList.remove("hidden")}
 function closeModal(){$("#modal").classList.add("hidden")}
 $("#closeModal").onclick=closeModal; $("#modal").onclick=e=>{if(e.target.id==="modal")closeModal()};
@@ -41,7 +41,7 @@ function renderHome(){
   <button type="button" class="stat" onclick="navigate('sales')" aria-label="Abrir vendas"><div class="ico">🛒</div><small>Vendas hoje</small><strong>${money(total)}</strong><small>${sales.length} vendas</small></button>
   <button type="button" class="stat" onclick="navigate('deliveries')" aria-label="Abrir entregas"><div class="ico">🚚</div><small>Entregas hoje</small><strong>${deliveries}</strong><small>a realizar</small></button>
   <button type="button" class="stat" onclick="navigate('clients')" aria-label="Abrir clientes"><div class="ico">👥</div><small>Clientes</small><strong>${state.clients.length}</strong><small>cadastrados</small></button>
-  <button type="button" class="stat" onclick="navigate('receivables')" aria-label="Abrir contas a receber"><div class="ico">💰</div><small>A receber</small><strong>${money(due.reduce((a,s)=>a+Number(s.total),0))}</strong><small>${new Set(due.map(s=>s.clientId)).size} clientes</small></button>
+  <button type="button" class="stat" onclick="navigate('receivables')" aria-label="Abrir contas a receber"><div class="ico">💰</div><small>A receber</small><strong>R$</strong><small>ver contas</small></button>
  </section>
  <section class="actions"><button class="action sale" onclick="newSale()">🛒 NOVA VENDA <span>›</span></button><button class="action client" onclick="newClient()">👤 NOVO CLIENTE <span>›</span></button></section>
  <section class="products">
@@ -169,7 +169,7 @@ function renderMore(){
  const connected=localStorage.getItem("pao_drive_connected")==="1";
  $("#content").innerHTML=`<div class="screenTitleRow"><h2 class="screenTitle">Gastos e Relatórios</h2><button class="btn" onclick="navigate('home')">← Voltar</button></div>
  <section class="panel"><div class="moreGrid"><button class="moreCard" onclick="renderCosts()"><span>🧾</span><b>Gastos</b><small>Matéria-prima</small></button><button class="moreCard" onclick="renderClosing()"><span>📅</span><b>Relatórios</b><small>Fechamento mensal e PDF</small></button></div></section>
- <section class="panel drivePanel"><h3>☁️ Backup no Google Drive</h3><p class="muted">Os dados ficam salvos neste aparelho. O Google Drive só é atualizado quando você tocar em “Fazer backup agora”.</p><div id="driveStatus" class="driveStatus">${last?"Último backup: "+new Date(last).toLocaleString("pt-BR"):connected?"Google Drive conectado.":"Google Drive ainda não conectado."}</div><div class="toolbar"><button class="btn gold" onclick="driveAuth()">☁️ Conectar Google Drive</button><button class="btn primary" onclick="backupNow()">💾 Fazer backup agora</button><button class="btn" onclick="restoreNow()">📥 Restaurar backup</button></div><div class="toolbar"><button class="btn" onclick="driveDisconnect()">Desconectar Drive</button></div></section>`
+ <section class="panel drivePanel"><h3>☁️ Backup no Google Drive</h3><p class="muted">Os dados ficam salvos neste aparelho. O Google Drive só é atualizado quando você tocar em “Fazer backup agora”.</p><div id="driveStatus" class="driveStatus">${last?"Último backup: "+new Date(last).toLocaleString("pt-BR"):connected?"Google Drive conectado.":"Google Drive ainda não conectado."}</div><div class="backupButtons"><button class="btn gold backupBtn" type="button" onclick="driveAuth()">☁️<span>Conectar Google Drive</span></button><button class="btn primary backupBtn" type="button" onclick="backupNow()">💾<span>Fazer backup agora</span></button><button class="btn backupBtn" type="button" onclick="restoreNow()">📥<span>Restaurar backup</span></button><button class="btn backupBtn" type="button" onclick="driveDisconnect()">🔌<span>Desconectar Drive</span></button></div></section>`
 }
 function newCost(){
  openModal(`<h2>Lançar gasto com matéria-prima</h2><form class="form" id="costForm">
@@ -227,7 +227,7 @@ function deliver(id){const s=state.sales.find(x=>x.id===id);if(s){s.delivered=tr
 function payGroup(k){const [cid,month]=k.split("_");state.sales.filter(s=>s.clientId===cid&&(s.payDate||s.date).slice(0,7)===month&&!s.paid).forEach(s=>{s.paid=true;s.paidAt=today()});save();renderReceivables();toast("Recebimento registrado!")}
 function charge(cid,total){const c=state.clients.find(x=>x.id===cid);if(!c)return;wa(c.phone,`Tudo bem ${c.name}, tem uma notinha sua aqui, são ${money(total)}. Consegue mandar pix pra mim?`)}
 function openRoute(){const selected=deliveryViewDate||tomorrow();const list=state.sales.filter(s=>s.date===selected&&!s.delivered).map(s=>state.clients.find(c=>c.id===s.clientId)?.address).filter(Boolean);if(!list.length)return toast("Não há entregas pendentes para a data selecionada.");window.open(maps(list.join(" | ")),"_blank")}
-function updateBadges(){const pending=state.sales.filter(s=>s.date===today()&&!s.delivered).length;const db=$("#deliveryBadge");if(db)db.textContent=pending;const nb=$("#notifyCount");if(nb)nb.textContent=state.sales.filter(s=>(s.payment==="prazo"&&!s.paid&&s.payDate<today())||(s.payment!=="prazo"&&s.delivered&&!s.paid)).length;const nav=$("#navDueAmount");if(nav)nav.textContent=money(receivableTotal())}
+function updateBadges(){const pending=state.sales.filter(s=>s.date===today()&&!s.delivered).length;const db=$("#deliveryBadge");if(db)db.textContent=pending;const nb=$("#notifyCount");if(nb)nb.textContent=state.sales.filter(s=>(s.payment==="prazo"&&!s.paid&&s.payDate<today())||(s.payment!=="prazo"&&s.delivered&&!s.paid)).length;const nav=$("#navDueAmount");if(nav)nav.textContent="R$"}
 $("#notifyBtn").onclick=()=>navigate("receivables");
 renderHome();
 updateBottomNav();
