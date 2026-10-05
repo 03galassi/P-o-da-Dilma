@@ -1,36 +1,14 @@
-# Pão da Dilma — V6
+# Pão da Dilma — V7
 
-Versão responsiva para celular/tablet, com:
+Versão responsiva para celular/tablet com vendas, clientes, entregas, contas a receber, custos de matéria-prima e backup no Google Drive.
 
-- imagens do pão e pão doce incluídas no pacote;
-- fallback visual caso uma imagem não carregue;
-- botão **NOVA VENDA** abrindo sempre o fluxo de venda; se não houver cliente, o app explica e oferece o cadastro;
-- interface adaptável a diferentes tamanhos de tela, incluindo iPhone pequeno;
-- ícone personalizado para instalação na tela inicial (iOS e Android/PWA);
-- controle de **custos de matéria-prima** com data, item, quantidade, fornecedor, valor e observação;
-- backup local + integração com Google Drive da V5;
-- restauração dos dados pelo Google Drive.
+## Google Drive
+O Client ID OAuth já está configurado nesta versão. A conta Google usada no aplicativo precisa estar cadastrada como **usuário de teste** na tela de consentimento OAuth enquanto o app estiver em teste.
 
-## Importante ao publicar no GitHub Pages
+A permissão usada é `drive.file`. O aplicativo mantém os dados localmente e atualiza uma cópia JSON no Google Drive quando autorizado.
 
-Envie **todos os arquivos e a pasta `assets`**, mantendo a estrutura:
+## Imagens e ícone
+As imagens de Pão e Pão Doce usadas na interface principal estão embutidas no `app.js` para evitar problemas de caminho no GitHub Pages. Os ícones PWA também estão na raiz do projeto.
 
-```text
-index.html
-app.js
-styles.css
-drive.js
-manifest.json
-sw.js
-assets/
-  hero.jpg
-  pao.jpg
-  pao_doce.jpg
-  icon-180.png
-  icon-192.png
-  icon-512.png
-```
-
-Depois de publicar, se o navegador mostrar uma versão antiga, faça uma atualização forçada ou remova o atalho antigo da tela inicial e crie novamente depois que a nova versão carregar.
-
-O Google Drive continua dependendo do Client ID OAuth configurado no `drive.js`.
+## Publicação
+Envie **todos os arquivos desta pasta para a raiz do repositório** do GitHub Pages. Não envie a pasta `pao_v5` como uma pasta dentro do repositório.

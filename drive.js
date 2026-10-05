@@ -1,6 +1,6 @@
 /* Backup seguro do Pão da Dilma no Google Drive.
    Requer apenas o CLIENT_ID do OAuth do Google Cloud em GOOGLE_CLIENT_ID. */
-const DRIVE_CONFIG={CLIENT_ID:"COLOQUE_SEU_CLIENT_ID_AQUI",SCOPE:"https://www.googleapis.com/auth/drive.file",FOLDER:"Pao da Dilma - Backup",FILE:"pao-da-dilma-dados.json"};
+const DRIVE_CONFIG={CLIENT_ID:"855482975063-94b5bg9pdffvhg85qsuga7m2a5l2h0dk.apps.googleusercontent.com",SCOPE:"https://www.googleapis.com/auth/drive.file",FOLDER:"Pao da Dilma - Backup",FILE:"pao-da-dilma-dados.json"};
 let driveToken=null, driveBusy=false, backupTimer=null;
 function driveStatus(t,ok=false){const e=document.querySelector('#driveStatus');if(e){e.textContent=t;e.className='driveStatus '+(ok?'ok':'')}}
 function driveConfigured(){return DRIVE_CONFIG.CLIENT_ID && !DRIVE_CONFIG.CLIENT_ID.includes('COLOQUE_SEU')}
