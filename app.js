@@ -33,10 +33,10 @@ function renderHome(){
  $("#content").innerHTML=`
  <section class="hero"><img src="${HERO_IMAGE}" alt="Pão da Dilma" onerror="imageFallback(this,'heroFallback')"><div class="heroOverlay"><h1>PÃO<br><span class="gold">DA DILMA</span></h1><p>🚚 ENTREGA RÁPIDA &nbsp; ★ QUALIDADE SEMPRE &nbsp; ♥ CLIENTES SATISFEITOS</p></div></section>
  <section class="stats">
-  <div class="stat"><div class="ico">🛒</div><small>Vendas hoje</small><strong>${money(total)}</strong><small>${sales.length} vendas</small></div>
-  <div class="stat"><div class="ico">🚚</div><small>Entregas hoje</small><strong>${deliveries}</strong><small>a realizar</small></div>
-  <div class="stat"><div class="ico">👥</div><small>Clientes</small><strong>${state.clients.length}</strong><small>cadastrados</small></div>
-  <div class="stat"><div class="ico">💰</div><small>A receber</small><strong>${money(due.reduce((a,s)=>a+Number(s.total),0))}</strong><small>${new Set(due.map(s=>s.clientId)).size} clientes</small></div>
+  <button type="button" class="stat" onclick="navigate('sales')" aria-label="Abrir vendas"><div class="ico">🛒</div><small>Vendas hoje</small><strong>${money(total)}</strong><small>${sales.length} vendas</small></button>
+  <button type="button" class="stat" onclick="navigate('deliveries')" aria-label="Abrir entregas"><div class="ico">🚚</div><small>Entregas hoje</small><strong>${deliveries}</strong><small>a realizar</small></button>
+  <button type="button" class="stat" onclick="navigate('clients')" aria-label="Abrir clientes"><div class="ico">👥</div><small>Clientes</small><strong>${state.clients.length}</strong><small>cadastrados</small></button>
+  <button type="button" class="stat" onclick="navigate('receivables')" aria-label="Abrir contas a receber"><div class="ico">💰</div><small>A receber</small><strong>${money(due.reduce((a,s)=>a+Number(s.total),0))}</strong><small>${new Set(due.map(s=>s.clientId)).size} clientes</small></button>
  </section>
  <section class="actions"><button class="action sale" onclick="newSale()">🛒 NOVA VENDA <span>›</span></button><button class="action client" onclick="newClient()">👤 NOVO CLIENTE <span>›</span></button></section>
  <section class="products">
