@@ -27,7 +27,7 @@ function imageFallback(img,kind){img.style.display="none";img.parentElement.clas
 function renderHome(){
  const sales=state.sales.filter(s=>s.date===today());
  const total=sales.reduce((a,s)=>a+Number(s.total),0);
- const due=state.sales.filter(s=>s.payment==="prazo"&&s.paid!==true);
+ const due=state.sales.filter(s=>(s.payment==="prazo"&&s.paid!==true)||(s.payment!=="prazo"&&s.delivered&&s.paid!==true));
  const deliveries=sales.filter(s=>!s.delivered).length;
  const costsMonth=state.costs.filter(c=>String(c.date||"").slice(0,7)===monthNow()).reduce((a,c)=>a+Number(c.total||0),0);
  $("#content").innerHTML=`
@@ -65,10 +65,10 @@ function renderDeliveries(){
  $("#content").innerHTML=`<h2 class="screenTitle">Entregas de hoje</h2><section class="panel">${list.map(s=>`<div class="listRow"><div class="avatar">🚚</div><div><b>${esc(s.c?.name||"Cliente")}</b><div class="muted">${s.where==="trabalho"?"🏢 Trabalho":"🏠 Casa"} · ${esc(s.c?.address||"")}</div></div><a class="mapBtn" href="${maps(s.c?.address||"")}" target="_blank">🗺️</a><button class="btn primary" onclick="deliver('${s.id}')">Entregue</button></div>`).join("")||'<div class="empty">Nenhuma entrega pendente hoje.</div>'}<div class="toolbar"><button class="btn gold" onclick="openRoute()">🗺️ Abrir endereços no Maps</button></div></section>`;
 }
 function renderReceivables(){
- const due=state.sales.filter(s=>s.payment==="prazo"&&!s.paid);
+ const due=state.sales.filter(s=>(s.payment==="prazo"&&!s.paid)||(s.payment!=="prazo"&&s.delivered&&!s.paid));
  const groups={};
- due.forEach(s=>{const c=state.clients.find(c=>c.id===s.clientId);const month=s.payDate?.slice(0,7)||s.date.slice(0,7);const k=s.clientId+"_"+month;(groups[k]??={client:c,month,total:0,sales:[]});groups[k].total+=Number(s.total);groups[k].sales.push(s)});
- $("#content").innerHTML=`<h2 class="screenTitle">A receber</h2><section class="panel">${Object.entries(groups).map(([k,g])=>`<div class="listRow"><div class="avatar">💰</div><div><b>${esc(g.client?.name||"Cliente")}</b><div class="muted">${g.month} · ${g.sales.length} venda(s)</div></div><div><b>${money(g.total)}</b><div class="muted ${g.sales.some(s=>s.payDate<today())?'danger':''}">${g.sales.some(s=>s.payDate<today())?'VENCIDO':'A vencer'}</div></div><div><button class="btn gold" onclick="payGroup('${k}')">Recebido</button>${g.sales.some(s=>s.payDate<today())?`<button class="btn" onclick="charge('${g.client.id}','${g.total}')">WhatsApp</button>`:""}</div></div>`).join("")||'<div class="empty">Nenhuma conta em aberto.</div>'}</section>`;
+ due.forEach(s=>{const c=state.clients.find(c=>c.id===s.clientId);const month=(s.payment==="prazo"?(s.payDate||s.date):s.date).slice(0,7);const k=s.clientId+"_"+month;(groups[k]??={client:c,month,total:0,sales:[]});groups[k].total+=Number(s.total);groups[k].sales.push(s)});
+ $("#content").innerHTML=`<h2 class="screenTitle">A receber</h2><section class="panel">${Object.entries(groups).map(([k,g])=>`<div class="listRow"><div class="avatar">💰</div><div><b>${esc(g.client?.name||"Cliente")}</b><div class="muted">${g.month} · ${g.sales.length} venda(s)</div></div><div><b>${money(g.total)}</b><div class="muted ${g.sales.some(s=>s.payDate<today())?'danger':''}">${(g.sales.some(s=>s.payment==="prazo"&&s.payDate<today())?'VENCIDO':(g.sales.some(s=>s.payment!=="prazo")?'AGUARDANDO RECEBIMENTO':'A vencer'))}</div></div><div><button class="btn gold" onclick="payGroup('${k}')">Recebido</button>${g.sales.some(s=>s.payDate<today())?`<button class="btn" onclick="charge('${g.client.id}','${g.total}')">WhatsApp</button>`:""}</div></div>`).join("")||'<div class="empty">Nenhuma conta em aberto.</div>'}</section>`;
 }
 function renderCosts(){
  const current=state.costs.filter(c=>String(c.date||"").slice(0,7)===monthNow());
@@ -189,7 +189,7 @@ function deliver(id){const s=state.sales.find(x=>x.id===id);if(s){s.delivered=tr
 function payGroup(k){const [cid,month]=k.split("_");state.sales.filter(s=>s.clientId===cid&&(s.payDate||s.date).slice(0,7)===month&&!s.paid).forEach(s=>s.paid=true);save();renderReceivables();toast("Recebimento registrado!")}
 function charge(cid,total){const c=state.clients.find(x=>x.id===cid);if(!c)return;wa(c.phone,`Tudo bem ${c.name}, tem uma notinha sua aqui, são ${money(total)}. Consegue mandar pix pra mim?`)}
 function openRoute(){const list=state.sales.filter(s=>s.date===today()&&!s.delivered).map(s=>state.clients.find(c=>c.id===s.clientId)?.address).filter(Boolean);if(!list.length)return toast("Não há entregas pendentes.");window.open(maps(list.join(" | ")),"_blank")}
-function updateBadges(){const pending=state.sales.filter(s=>s.date===today()&&!s.delivered).length;$("#deliveryBadge").textContent=pending;$("#notifyCount").textContent=state.sales.filter(s=>s.payment==="prazo"&&!s.paid&&s.payDate<today()).length}
+function updateBadges(){const pending=state.sales.filter(s=>s.date===today()&&!s.delivered).length;$("#deliveryBadge").textContent=pending;$("#notifyCount").textContent=state.sales.filter(s=>(s.payment==="prazo"&&!s.paid&&s.payDate<today())||(s.payment!=="prazo"&&s.delivered&&!s.paid)).length}
 $("#notifyBtn").onclick=()=>navigate("receivables");
 renderHome();
 if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
