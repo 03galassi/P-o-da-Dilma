@@ -18,3 +18,10 @@ V15: substituído o botão de três pontos do menu inferior por ícone de gráfi
 
 
 V17: tela inicial sem valor de A receber (exibe apenas R$), backup do Google Drive restaurado e botões de backup organizados, com cache atualizado.
+
+V25: recebimentos permitem valor maior ou menor que o saldo. Recebimentos parciais mantêm o saldo restante em A Receber; pagamentos iguais ou superiores encerram a conta, com registro de eventual excedente.
+
+V27: pagamentos acima do saldo geram crédito vinculado ao cliente. O crédito é guardado para a próxima compra e utilizado automaticamente no momento do registro da venda.
+
+
+V27: tela Entregas inicia sempre na data de hoje; todas as vendas não recebidas, inclusive à vista, aparecem em A Receber até serem marcadas como recebidas.
