@@ -1,27 +1,3 @@
-# Pão da Dilma — V8
+Pão da Dilma V33
 
-Controle de clientes, vendas, entregas, contas a receber e gastos com matéria-prima.
-
-- Venda: quantidade padrão 1.
-- Valores unitários rápidos: R$ 12, R$ 14, R$ 16 e R$ 18.
-- Valor total calculado somente quando solicitado.
-- Clientes: editar e excluir.
-- Exclusão de cliente preserva o histórico das vendas e é bloqueada quando há contas em aberto.
-- Gastos com matéria-prima em Mais.
-- Backup automático no Google Drive.
-- Ícones PWA e layout responsivo.
-
-
-V12: seleção de data para entregas (padrão dia seguinte) e geração/arquivamento de PDF do fechamento mensal corrigidos.
-
-V15: substituído o botão de três pontos do menu inferior por ícone de gráfico em Gastos/Relatórios.
-
-
-V17: tela inicial sem valor de A receber (exibe apenas R$), backup do Google Drive restaurado e botões de backup organizados, com cache atualizado.
-
-V25: recebimentos permitem valor maior ou menor que o saldo. Recebimentos parciais mantêm o saldo restante em A Receber; pagamentos iguais ou superiores encerram a conta, com registro de eventual excedente.
-
-V27: pagamentos acima do saldo geram crédito vinculado ao cliente. O crédito é guardado para a próxima compra e utilizado automaticamente no momento do registro da venda.
-
-
-V27: tela Entregas inicia sempre na data de hoje; todas as vendas não recebidas, inclusive à vista, aparecem em A Receber até serem marcadas como recebidas.
+Regra corrigida: uma venda somente entra em A Receber depois que a entrega for confirmada. Isso vale para à vista, a prazo e mensal. Após a confirmação de recebimento, deixa de aparecer em A Receber.
