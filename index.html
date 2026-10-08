@@ -12,10 +12,24 @@
 <link rel="apple-touch-icon" sizes="180x180" href="./icon-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <title>Pão da Dilma</title>
-<link rel="stylesheet" href="./styles.css?v=21">
+<link rel="stylesheet" href="./styles.css?v=23">
 </head>
 <body>
-<div id="app">
+<div id="authScreen" class="authScreen hidden">
+  <div class="authCard">
+    <div class="authLogo">🥖</div>
+    <h1>PÃO <span>DA DILMA</span></h1>
+    <p class="authSubtitle">Acesso ao aplicativo</p>
+    <form id="loginForm" class="authForm">
+      <label>E-mail<input id="loginEmail" type="email" autocomplete="username" value="dilmagalassi@gmail.com" required></label>
+      <label>Senha<input id="loginPassword" type="password" autocomplete="current-password" placeholder="Digite sua senha" required></label>
+      <button class="btn primary authSubmit" type="submit">Entrar</button>
+      <button class="authLink" id="forgotPassword" type="button">Esqueci minha senha</button>
+      <div id="authMessage" class="authMessage"></div>
+    </form>
+  </div>
+</div>
+<div id="app" class="hidden">
   <header class="topbar">
     <div class="brand">
       <div class="brandMark">🥖</div>
@@ -44,7 +58,11 @@
   </div>
 </div>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="./drive.js?v=21"></script>
-<script src="./app.js?v=22"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script src="./firebase-sync.js?v=2"></script>
+<script src="./drive.js?v=23"></script>
+<script src="./app.js?v=24"></script>
 </body>
 </html>
