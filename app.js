@@ -349,10 +349,16 @@ function setAuthMessage(msg,ok=false){
 }
 async function initAuth(){
  showAuthScreen();
- const auth=window.paoFirebaseGetUser ? window.paoFirebaseGetUser() : null;
- // Somente contas com e-mail podem acessar. Sessões anônimas antigas são encerradas.
- if(auth && auth.email){ await enterApp(); return; }
- if(auth && !auth.email && window.paoFirebaseLogout){ await window.paoFirebaseLogout(); }
+ // Por segurança, o Pão da Dilma exige o e-mail e a senha sempre que o aplicativo é aberto.
+ // O Firebase normalmente mantém a sessão salva no navegador; aqui encerramos essa sessão
+ // antes de verificar o usuário, para que a tela de login seja sempre apresentada.
+ try{
+   if(window.firebase?.auth){
+     await firebase.auth().signOut();
+   }
+ }catch(e){ console.warn("Não foi possível encerrar a sessão anterior:", e); }
+ const auth=null;
+ if(auth){ await enterApp(); return; }
  const form=document.getElementById("loginForm");
  const forgot=document.getElementById("forgotPassword");
  if(form && !form.dataset.bound){
@@ -376,11 +382,7 @@ async function initAuth(){
  }
  if(window.firebase?.auth){
    firebase.auth().onAuthStateChanged(async user=>{
-     if(user && user.email) await enterApp();
-     else {
-       if(user && !user.email && window.paoFirebaseLogout) await window.paoFirebaseLogout();
-       showAuthScreen();
-     }
+     if(user) await enterApp(); else showAuthScreen();
    });
  }
 }
