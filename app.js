@@ -350,7 +350,9 @@ function setAuthMessage(msg,ok=false){
 async function initAuth(){
  showAuthScreen();
  const auth=window.paoFirebaseGetUser ? window.paoFirebaseGetUser() : null;
- if(auth){ await enterApp(); return; }
+ // Somente contas com e-mail podem acessar. Sessões anônimas antigas são encerradas.
+ if(auth && auth.email){ await enterApp(); return; }
+ if(auth && !auth.email && window.paoFirebaseLogout){ await window.paoFirebaseLogout(); }
  const form=document.getElementById("loginForm");
  const forgot=document.getElementById("forgotPassword");
  if(form && !form.dataset.bound){
@@ -374,7 +376,11 @@ async function initAuth(){
  }
  if(window.firebase?.auth){
    firebase.auth().onAuthStateChanged(async user=>{
-     if(user) await enterApp(); else showAuthScreen();
+     if(user && user.email) await enterApp();
+     else {
+       if(user && !user.email && window.paoFirebaseLogout) await window.paoFirebaseLogout();
+       showAuthScreen();
+     }
    });
  }
 }
