@@ -1,0 +1,138 @@
+/* ===== Pão da Dilma — camada de efeitos (não altera o styles.css) ===== */
+:root{
+  --fx-brasa:#ff9a3c; --fx-massa:#f6d9a8; --fx-crosta:#c9762b; --fx-noite:#170d08;
+  --fx-ease:cubic-bezier(.2,.8,.2,1);
+}
+
+/* ---------- LOGIN ---------- */
+#authScreen{position:fixed;inset:0;overflow:hidden;display:grid;place-items:center;
+  background:
+   radial-gradient(900px 600px at 50% 115%, rgba(255,140,40,.45), transparent 60%),
+   radial-gradient(600px 400px at 85% -10%, rgba(201,118,43,.25), transparent 60%),
+   linear-gradient(180deg,#120905 0%,#241108 100%);}
+#authScreen.hidden{display:none}
+#fxCanvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.fxOven{position:absolute;left:50%;bottom:-220px;width:140vmax;height:420px;transform:translateX(-50%);
+  background:radial-gradient(closest-side,rgba(255,150,50,.55),transparent 70%);
+  filter:blur(30px);animation:fxBreath 5s ease-in-out infinite;pointer-events:none}
+@keyframes fxBreath{50%{opacity:.55;transform:translateX(-50%) scale(1.08)}}
+
+#authScreen .authCard{position:relative;z-index:2;width:min(92vw,400px);
+  background:linear-gradient(160deg,rgba(255,255,255,.10),rgba(255,255,255,.03));
+  border:1px solid rgba(255,214,160,.22);border-radius:28px;
+  -webkit-backdrop-filter:blur(18px) saturate(140%);backdrop-filter:blur(18px) saturate(140%);
+  box-shadow:0 30px 80px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.18);
+  transform-style:preserve-3d;will-change:transform;
+  animation:fxCardIn .9s var(--fx-ease) both}
+@keyframes fxCardIn{from{opacity:0;transform:translateY(40px) scale(.94) rotateX(8deg)}}
+/* brilho que segue o dedo/mouse */
+#authScreen .authCard::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(260px circle at var(--mx,50%) var(--my,0%),rgba(255,190,110,.28),transparent 60%);
+  opacity:0;transition:opacity .3s}
+#authScreen .authCard:hover::before,#authScreen .authCard.touch::before{opacity:1}
+
+.authLogo{display:inline-grid;place-items:center;font-size:56px;position:relative;
+  animation:fxBob 3.6s ease-in-out infinite}
+.authLogo::after{content:"";position:absolute;inset:-18px;border-radius:50%;z-index:-1;
+  background:radial-gradient(circle,rgba(255,170,70,.55),transparent 65%);animation:fxBreath 3.6s ease-in-out infinite}
+@keyframes fxBob{50%{transform:translateY(-8px) rotate(-6deg)}}
+
+.authCard h1{background:linear-gradient(100deg,#fff2d6 20%,var(--fx-brasa) 50%,#fff2d6 80%);
+  background-size:220% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:fxShine 5s linear infinite}
+.authCard h1 span{color:inherit}
+@keyframes fxShine{to{background-position:-220% 0}}
+
+.authForm label{transition:transform .25s var(--fx-ease)}
+.authForm label:focus-within{transform:translateY(-2px)}
+.authForm input{transition:box-shadow .25s,border-color .25s,background .25s}
+.authForm input:focus{outline:none;border-color:var(--fx-brasa)!important;
+  box-shadow:0 0 0 4px rgba(255,154,60,.22),0 8px 24px rgba(255,120,20,.18)}
+
+.authSubmit{position:relative;overflow:hidden;isolation:isolate;transition:transform .2s var(--fx-ease),box-shadow .3s}
+.authSubmit::after{content:"";position:absolute;inset:0;z-index:-1;
+  background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.45) 50%,transparent 70%);
+  transform:translateX(-120%);animation:fxSweep 3.2s ease-in-out infinite}
+@keyframes fxSweep{60%,100%{transform:translateX(120%)}}
+.authSubmit:hover{box-shadow:0 10px 30px rgba(255,130,30,.45)}
+.authSubmit:active{transform:scale(.97)}
+.authSubmit.loading{pointer-events:none;opacity:.85}
+.authSubmit.loading::before{content:"";display:inline-block;width:14px;height:14px;margin-right:8px;vertical-align:-2px;
+  border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:fxSpin .7s linear infinite}
+@keyframes fxSpin{to{transform:rotate(360deg)}}
+.authMessage:not(:empty){animation:fxShake .45s}
+@keyframes fxShake{20%{transform:translateX(-8px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+.authCard.shake{animation:fxShake .45s}
+
+/* ---------- ENTRADA DO APP ---------- */
+#app.fxEnter{animation:fxAppIn .7s var(--fx-ease) both}
+@keyframes fxAppIn{from{opacity:0;transform:scale(1.03);filter:blur(6px)}}
+
+/* ---------- TOPO ---------- */
+.topbar{transition:box-shadow .3s,background .3s,-webkit-backdrop-filter .3s,backdrop-filter .3s}
+.topbar.scrolled{box-shadow:0 8px 30px rgba(0,0,0,.35);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.brandMark{animation:fxBob 4s ease-in-out infinite;display:inline-block}
+.search input{transition:box-shadow .25s}
+.search:focus-within{box-shadow:0 0 0 3px rgba(255,154,60,.35);border-radius:inherit}
+.iconBtn{position:relative}
+.iconBtn.ring{animation:fxRing 1.4s ease-in-out 2}
+@keyframes fxRing{0%,100%{transform:rotate(0)}15%{transform:rotate(18deg)}30%{transform:rotate(-16deg)}45%{transform:rotate(12deg)}60%{transform:rotate(-8deg)}75%{transform:rotate(4deg)}}
+#notifyCount.pop,#deliveryBadge.pop{animation:fxPop .5s var(--fx-ease)}
+@keyframes fxPop{40%{transform:scale(1.6)}}
+
+/* ---------- CONTEÚDO ---------- */
+#content > .fxIn,#content .fxIn{animation:fxRise .6s var(--fx-ease) both;animation-delay:calc(var(--i,0)*55ms)}
+@keyframes fxRise{from{opacity:0;transform:translateY(22px) scale(.98)}}
+
+/* toque “afunda” em qualquer card/botão do conteúdo */
+#content [class*="card" i],#content [class*="item" i],#content [class*="row" i],#content .btn{
+  transition:transform .2s var(--fx-ease),box-shadow .3s,filter .2s}
+#content [class*="card" i]:active,#content [class*="item" i]:active,#content [class*="row" i]:active{transform:scale(.975)}
+@media (hover:hover){
+  #content [class*="card" i]:hover{transform:translateY(-3px);box-shadow:0 14px 34px rgba(0,0,0,.28),0 0 0 1px rgba(255,170,80,.25)}
+}
+#content .btn:active{transform:scale(.96)}
+#content .btn.primary{position:relative;overflow:hidden}
+#content .btn.primary::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.35) 50%,transparent 65%);
+  transform:translateX(-130%);transition:transform .7s}
+#content .btn.primary:hover::after{transform:translateX(130%)}
+
+/* ---------- RIPPLE ---------- */
+.fxRipple{position:absolute;border-radius:50%;pointer-events:none;background:rgba(255,220,170,.45);
+  transform:scale(0);animation:fxRippleGo .6s ease-out forwards}
+@keyframes fxRippleGo{to{transform:scale(1);opacity:0}}
+button,.btn,.iconBtn{-webkit-tap-highlight-color:transparent}
+.bottomNav button,.iconBtn,.btn{position:relative;overflow:hidden}
+#deliveryBadge,#notifyCount{overflow:visible}
+
+/* ---------- NAV INFERIOR ---------- */
+.bottomNav{position:fixed;isolation:isolate}
+.navGlow{position:absolute;top:6px;bottom:6px;left:0;width:0;border-radius:16px;z-index:-1;pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,154,60,.28),rgba(255,154,60,.08));
+  box-shadow:0 0 22px rgba(255,140,40,.35),inset 0 1px 0 rgba(255,220,170,.35);
+  transition:transform .45s var(--fx-ease),width .45s var(--fx-ease)}
+.bottomNav button{transition:transform .3s var(--fx-ease),color .3s}
+.bottomNav button.active{transform:translateY(-3px)}
+.bottomNav button.active > span:first-child,.bottomNav button.active .navIcon{display:inline-block;animation:fxHop .5s var(--fx-ease)}
+@keyframes fxHop{40%{transform:translateY(-6px) scale(1.2)}}
+
+/* ---------- MODAL ---------- */
+.modal{transition:opacity .25s}
+.modal:not(.hidden) .modalCard{animation:fxModal .45s var(--fx-ease) both}
+.modal:not(.hidden){animation:fxFade .25s both}
+@keyframes fxModal{from{opacity:0;transform:translateY(60px) scale(.95)}}
+@keyframes fxFade{from{opacity:0}}
+
+/* ---------- CONFETE ---------- */
+.fxConfetti{position:fixed;top:-12px;width:9px;height:14px;z-index:9999;pointer-events:none;border-radius:2px;
+  animation:fxFall var(--d,2.4s) cubic-bezier(.3,.6,.4,1) forwards}
+@keyframes fxFall{to{transform:translate(var(--x,0),105vh) rotate(var(--r,720deg));opacity:.9}}
+
+/* ---------- ACESSIBILIDADE ---------- */
+:focus-visible{outline:2px solid var(--fx-brasa);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  #fxCanvas,.fxOven{display:none}
+}
