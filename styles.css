@@ -65,3 +65,21 @@ main{width:min(1040px,100%);margin:auto;padding:14px 16px calc(var(--navH) + env
 .receiptModalInfo{background:#21130d;border:1px solid #5f3d28;border-radius:16px;padding:15px;margin:12px 0}.receiptModalInfo p{margin:7px 0}.receiptAmountLabel{display:block;margin-top:14px}.receiptAmountLabel span{display:block;font-size:13px;color:#d2c0b6;margin-bottom:7px}.receiptAmountLabel input{width:100%;box-sizing:border-box;padding:14px;border-radius:12px;border:1px solid #8a5a35;background:#120a06;color:#fff;font-size:18px;outline:0}.receiptAmountLabel input:focus{border-color:#ffae18;box-shadow:0 0 0 2px #ffae1830}.receiptModalActions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px}.receiptModalActions .btn{min-height:44px}
 
 .authScreen{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:20px;background:radial-gradient(circle at 50% 0,#3b1c08 0,#160b06 35%,#0b0603 80%);overflow:auto}.authCard{width:min(430px,100%);box-sizing:border-box;background:linear-gradient(145deg,#2a160d,#160b06);border:1px solid #805126;border-radius:24px;padding:30px 24px;box-shadow:0 20px 60px #000b;text-align:center}.authLogo{font-size:54px;margin-bottom:4px}.authCard h1{margin:0;color:#fff;font-size:30px;letter-spacing:1px}.authCard h1 span{color:#f2ad28}.authSubtitle{color:#bda99d;margin:7px 0 22px}.authForm{text-align:left;display:grid;gap:13px}.authForm label{font-size:13px;color:#d2c0b6}.authForm input{box-sizing:border-box;width:100%;margin-top:6px;padding:14px;border-radius:12px;border:1px solid #62422e;background:#1b100b;color:#fff;outline:0;font-size:16px}.authForm input:focus{border-color:#d79a2a;box-shadow:0 0 0 2px #d79a2a22}.authSubmit{width:100%;margin-top:3px;padding:14px;font-size:16px}.authLink{border:0;background:transparent;color:#f2ad28;cursor:pointer;padding:8px;font-size:14px}.authMessage{text-align:center;min-height:20px;font-size:13px;color:#ff7777}.authMessage.ok{color:#8fd18f}.hidden{display:none!important}
+
+/* V34 — interface estável e barra inferior realmente fixa */
+:root{--navH:78px}
+html{min-height:100%;scroll-padding-bottom:calc(var(--navH) + env(safe-area-inset-bottom) + 16px)}
+body{padding-bottom:calc(var(--navH) + env(safe-area-inset-bottom) + 12px)}
+#app{transform:none!important;filter:none!important;perspective:none!important}
+#app.fxEnter{animation:none!important;transform:none!important;filter:none!important}
+#content>.fxIn,#content .fxIn{animation:none!important;animation-delay:0s!important;opacity:1!important;transform:none!important}
+#content [class*="card" i],#content [class*="item" i],#content [class*="row" i],#content .btn{transition:box-shadow .15s ease,filter .15s ease!important}
+@media(hover:hover){#content [class*="card" i]:hover{transform:none!important;box-shadow:0 8px 22px #0005!important}}
+#content [class*="card" i]:active,#content [class*="item" i]:active,#content [class*="row" i]:active,#content .btn:active{transform:none!important}
+.brandMark{animation:none!important}
+.bottomNav{position:fixed!important;left:0!important;right:0!important;bottom:0!important;z-index:100!important;height:calc(var(--navH) + env(safe-area-inset-bottom))!important;padding-bottom:env(safe-area-inset-bottom)!important;transform:none!important;contain:layout paint;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.bottomNav button,.bottomNav button.active{transform:none!important;transition:color .15s ease!important}
+.bottomNav button.active>span:first-child,.bottomNav button.active .navIcon{animation:none!important;transform:none!important}
+.bottomNav .navGlow{display:none!important;animation:none!important;transition:none!important}
+@media(max-width:760px){:root{--navH:72px}.bottomNav{height:calc(var(--navH) + env(safe-area-inset-bottom))!important}}
+@media(prefers-reduced-motion:reduce){#app.fxEnter,#content>.fxIn,#content .fxIn{animation:none!important;transform:none!important}}
