@@ -238,3 +238,10 @@ body{padding-bottom:calc(var(--navH) + env(safe-area-inset-bottom) + 12px)}
     height: clamp(110px, 18vh, 150px);
   }
 }
+
+
+/* V40 — amplia os cartões de produtos para ocupar a faixa inferior livre em celulares altos */
+@media (max-width: 800px) and (min-height: 750px) {
+  .homeDashboard .products { gap: 12px; margin-top: 4px; }
+  .homeDashboard .product { height: clamp(220px, 34vh, 290px); }
+}
