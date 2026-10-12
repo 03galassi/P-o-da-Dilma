@@ -140,3 +140,33 @@ body{padding-bottom:calc(var(--navH) + env(safe-area-inset-bottom) + 12px)}
  .homeDashboard .listRow{padding:3px 2px;}
  .homeDashboard .saleActions{display:none;}
 }
+
+/* V36 — redistribui o espaço livre após retirar “Últimas vendas” */
+.homeDashboard{gap:12px;}
+.homeDashboard .hero{height:clamp(125px,19vh,175px);}
+.homeDashboard .stats{gap:10px;}
+.homeDashboard .stat{min-height:88px;padding:11px 14px;}
+.homeDashboard .stat .ico{width:33px;height:33px;font-size:19px;margin-bottom:4px;}
+.homeDashboard .stat small{font-size:12px;}
+.homeDashboard .stat strong{font-size:clamp(17px,2.1vw,23px);margin:3px 0;}
+.homeDashboard .actions{gap:10px;}
+.homeDashboard .action{min-height:56px;padding:13px 15px;font-size:clamp(15px,1.9vw,19px);}
+.homeDashboard .products{gap:10px;}
+.homeDashboard .product{height:clamp(105px,16vh,145px);}
+.homeDashboard .product h3{font-size:clamp(19px,2.2vw,25px);left:15px;bottom:12px;}
+@media(max-width:760px){
+ .homeDashboard{gap:10px;}
+ .homeDashboard .hero{height:clamp(100px,15vh,130px);}
+ .homeDashboard .stat{min-height:86px;padding:8px 5px;}
+ .homeDashboard .stat .ico{width:27px;height:27px;font-size:16px;}
+ .homeDashboard .stat small{font-size:9px;}
+ .homeDashboard .actions{gap:8px;}
+ .homeDashboard .action{min-height:49px;padding:9px 8px;}
+ .homeDashboard .product{height:clamp(90px,14vh,115px);}
+}
+@media(max-height:740px){
+ .homeDashboard{gap:8px;}
+ .homeDashboard .hero{height:clamp(92px,14vh,120px);}
+ .homeDashboard .stat{min-height:75px;}
+ .homeDashboard .product{height:clamp(80px,12vh,100px);}
+}
