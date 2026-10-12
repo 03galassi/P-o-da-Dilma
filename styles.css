@@ -170,3 +170,31 @@ body{padding-bottom:calc(var(--navH) + env(safe-area-inset-bottom) + 12px)}
  .homeDashboard .stat{min-height:75px;}
  .homeDashboard .product{height:clamp(80px,12vh,100px);}
 }
+
+/* V37 — home mais arejada e sem títulos duplicados sobre as fotos */
+.homeDashboard{gap:16px;}
+.homeDashboard .hero{height:clamp(135px,20vh,180px);}
+.homeDashboard .stats{gap:12px;}
+.homeDashboard .stat{min-height:98px;padding:12px 10px;}
+.homeDashboard .actions{gap:12px;}
+.homeDashboard .action{min-height:62px;padding:14px 16px;}
+.homeDashboard .products{gap:12px;margin-top:2px;}
+.homeDashboard .product{height:clamp(130px,19vh,175px);}
+.homeDashboard .product h3{display:none !important;}
+@media(max-width:760px){
+ .homeDashboard{gap:13px;}
+ .homeDashboard .hero{height:clamp(125px,17vh,150px);}
+ .homeDashboard .stats{gap:7px;}
+ .homeDashboard .stat{min-height:92px;padding:9px 4px;}
+ .homeDashboard .actions{gap:9px;}
+ .homeDashboard .action{min-height:54px;padding:10px 7px;}
+ .homeDashboard .products{gap:9px;}
+ .homeDashboard .product{height:clamp(125px,17vh,150px);}
+ .homeDashboard .product h3{display:none !important;}
+}
+@media(max-height:740px){
+ .homeDashboard{gap:9px;}
+ .homeDashboard .hero{height:clamp(105px,15vh,125px);}
+ .homeDashboard .stat{min-height:78px;}
+ .homeDashboard .product{height:clamp(100px,14vh,120px);}
+}
