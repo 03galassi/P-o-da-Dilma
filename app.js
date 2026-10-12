@@ -46,6 +46,7 @@ function renderHome(){
  const deliveries=sales.filter(s=>!s.delivered).length;
  const costsMonth=state.costs.filter(c=>String(c.date||"").slice(0,7)===monthNow()).reduce((a,c)=>a+Number(c.total||0),0);
  $("#content").innerHTML=`
+ <div class="homeDashboard">
  <section class="hero"><img src="${HERO_IMAGE}" alt="Pão da Dilma" onerror="imageFallback(this,'heroFallback')"><div class="heroOverlay"><h1>PÃO<br><span class="gold">DA DILMA</span></h1><p>🚚 ENTREGA RÁPIDA &nbsp; ★ QUALIDADE SEMPRE &nbsp; ♥ CLIENTES SATISFEITOS</p></div></section>
  <section class="stats">
   <button type="button" class="stat" onclick="navigate('sales')" aria-label="Abrir vendas"><div class="ico">🛒</div><small>Vendas hoje</small><strong>${money(total)}</strong><small>${sales.length} vendas</small></button>
@@ -59,7 +60,8 @@ function renderHome(){
   <div class="product" onclick="newSale('doce')"><img src="${PAO_DOCE_IMAGE}" alt="Pão doce" onerror="imageFallback(this,'sweetFallback')"><h3>PÃO DOCE</h3></div>
  </section>
  <section class="panel"><div class="panelTitle">◷ Últimas vendas <button class="btn" onclick="navigate('sales')">Ver todas ›</button></div>
- ${sales.slice(-3).reverse().map(s=>saleRow(s)).join("") || '<div class="empty">Nenhuma venda registrada hoje.</div>'}</section>`;
+ ${sales.slice(-3).reverse().map(s=>saleRow(s)).join("") || '<div class="empty">Nenhuma venda registrada hoje.</div>'}</section>
+ </div>`;
  updateBadges();
 }
 function saleRow(s){
