@@ -59,8 +59,6 @@ function renderHome(){
   <div class="product" onclick="newSale('pao')"><img src="${PAO_IMAGE}" alt="Pão" onerror="imageFallback(this,'breadFallback')"><h3>PÃO</h3></div>
   <div class="product" onclick="newSale('doce')"><img src="${PAO_DOCE_IMAGE}" alt="Pão doce" onerror="imageFallback(this,'sweetFallback')"><h3>PÃO DOCE</h3></div>
  </section>
- <section class="panel"><div class="panelTitle">◷ Últimas vendas <button class="btn" onclick="navigate('sales')">Ver todas ›</button></div>
- ${sales.slice(-3).reverse().map(s=>saleRow(s)).join("") || '<div class="empty">Nenhuma venda registrada hoje.</div>'}</section>
  </div>`;
  updateBadges();
 }
