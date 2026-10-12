@@ -221,3 +221,20 @@ body{padding-bottom:calc(var(--navH) + env(safe-area-inset-bottom) + 12px)}
  .homeDashboard .action{min-height:50px;}
  .homeDashboard .product{height:clamp(115px,16vh,135px);}
 }
+
+/* Ajuste final V39: aproveitar a faixa vazia da tela inicial em celulares altos.
+   Mantém os cartões proporcionais à altura disponível, sem mexer nas funcionalidades. */
+@media (max-width: 800px) and (min-height: 750px) {
+  .homeDashboard .products {
+    gap: 12px;
+    margin-top: 4px;
+  }
+  .homeDashboard .product {
+    height: clamp(175px, 28vh, 235px);
+  }
+}
+@media (max-width: 800px) and (max-height: 749px) {
+  .homeDashboard .product {
+    height: clamp(110px, 18vh, 150px);
+  }
+}
