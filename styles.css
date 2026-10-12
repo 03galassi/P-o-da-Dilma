@@ -240,8 +240,17 @@ body{padding-bottom:calc(var(--navH) + env(safe-area-inset-bottom) + 12px)}
 }
 
 
-/* V40 — amplia os cartões de produtos para ocupar a faixa inferior livre em celulares altos */
+/* V41 — cartões proporcionais: preserva a navegação fixa e mostra os nomes sem duplicação */
 @media (max-width: 800px) and (min-height: 750px) {
   .homeDashboard .products { gap: 12px; margin-top: 4px; }
-  .homeDashboard .product { height: clamp(220px, 34vh, 290px); }
+  .homeDashboard .product { height: clamp(220px, 27vh, 325px); }
+  .homeDashboard .product h3 {
+    display: block !important;
+    left: 12px;
+    bottom: 10px;
+    font-size: clamp(17px, 4.2vw, 23px);
+    line-height: 1.1;
+    color: #fff;
+    text-shadow: 0 2px 5px #000;
+  }
 }
