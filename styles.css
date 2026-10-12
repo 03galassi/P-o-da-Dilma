@@ -198,3 +198,26 @@ body{padding-bottom:calc(var(--navH) + env(safe-area-inset-bottom) + 12px)}
  .homeDashboard .stat{min-height:78px;}
  .homeDashboard .product{height:clamp(100px,14vh,120px);}
 }
+
+/* V38 — aproveita melhor a área livre na parte inferior da tela inicial */
+.homeDashboard{gap:16px;}
+.homeDashboard .products{gap:14px;margin-top:4px;}
+.homeDashboard .product{height:clamp(145px,20vh,180px);}
+@media(max-width:760px){
+ .homeDashboard{gap:14px;}
+ .homeDashboard .hero{height:clamp(130px,18vh,155px);}
+ .homeDashboard .stats{gap:8px;}
+ .homeDashboard .stat{min-height:96px;}
+ .homeDashboard .actions{gap:10px;}
+ .homeDashboard .action{min-height:58px;}
+ .homeDashboard .products{gap:10px;margin-top:3px;}
+ .homeDashboard .product{height:clamp(145px,20vh,175px);}
+ .homeDashboard .product h3{display:none !important;}
+}
+@media(max-height:740px){
+ .homeDashboard{gap:10px;}
+ .homeDashboard .hero{height:clamp(110px,16vh,130px);}
+ .homeDashboard .stat{min-height:82px;}
+ .homeDashboard .action{min-height:50px;}
+ .homeDashboard .product{height:clamp(115px,16vh,135px);}
+}
