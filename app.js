@@ -40,6 +40,7 @@ function maps(addr){return "https://www.google.com/maps/search/?api=1&query="+en
 function imageFallback(img,kind){img.style.display="none";img.parentElement.classList.add("imageFallback",kind||"")}
 
 function renderHome(){
+ document.body.classList.add("home-screen");
  const sales=state.sales.filter(s=>s.date===today());
  const total=sales.reduce((a,s)=>a+Number(s.total),0);
  const due=state.sales.filter(s=>s.paid!==true);
@@ -194,8 +195,8 @@ async function paoLogout(){
 function renderMore(){
  const last=localStorage.getItem("pao_drive_last_backup");
  const connected=localStorage.getItem("pao_drive_connected")==="1";
- $("#content").innerHTML=`<div class="screenTitleRow"><h2 class="screenTitle">Backup e Relatórios</h2><button class="btn" onclick="navigate('home')">← Voltar</button></div>
- <section class="panel"><div class="moreGrid"><button class="moreCard" onclick="renderCosts()"><span>🧾</span><b>Gastos</b><small>Matéria-prima</small></button><button class="moreCard" onclick="renderClosing()"><span>📅</span><b>Relatórios</b><small>Fechamento mensal e PDF</small></button></div></section>
+ $("#content").innerHTML=`<div class="screenTitleRow"><h2 class="screenTitle">Backup</h2><button class="btn" onclick="navigate('home')">← Voltar</button></div>
+ <section class="panel"><div class="moreGrid"><button class="moreCard" onclick="renderCosts()"><span>🧾</span><b>Gastos</b><small>Matéria-prima</small></button></div></section>
  <section class="panel"><h3>🔐 Segurança</h3><p class="muted">Conta: ${esc(window.paoFirebaseGetUser?.()?.email||"")}</p><div class="backupButtons"><button class="btn backupBtn" type="button" onclick="openChangePassword()">🔑<span>Alterar senha</span></button><button class="btn backupBtn" type="button" onclick="paoLogout()">🚪<span>Sair</span></button></div></section>
  <section class="panel drivePanel"><h3>☁️ Backup no Google Drive</h3><p class="muted">Os dados ficam salvos neste aparelho. O Google Drive só é atualizado quando você tocar em “Fazer backup agora”.</p><div id="driveStatus" class="driveStatus">${last?"Último backup: "+new Date(last).toLocaleString("pt-BR"):connected?"Google Drive conectado.":"Google Drive ainda não conectado."}</div><div class="backupButtons"><button class="btn gold backupBtn" type="button" onclick="driveAuth()">☁️<span>Conectar Google Drive</span></button><button class="btn primary backupBtn" type="button" onclick="backupNow()">💾<span>Fazer backup agora</span></button><button class="btn backupBtn" type="button" onclick="restoreNow()">📥<span>Restaurar backup</span></button><button class="btn backupBtn" type="button" onclick="driveDisconnect()">🔌<span>Desconectar Drive</span></button></div></section>`
 }
@@ -209,7 +210,7 @@ function newCost(){
  $("#costForm").onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);state.costs.push({id:crypto.randomUUID(),date:f.get("date"),item:f.get("item"),qty:f.get("qty"),supplier:f.get("supplier"),total:Number(f.get("total")),note:f.get("note")});save();closeModal();toast("Gasto lançado!");renderCosts()};
 }
 function deleteCost(id){if(!confirm("Excluir este gasto?"))return;state.costs=state.costs.filter(c=>c.id!==id);save();renderCosts();toast("Gasto excluído.")}
-function navigate(screen){document.querySelectorAll(".bottomNav button").forEach(b=>b.classList.toggle("active",b.dataset.screen===screen)); if(screen==="home")renderHome();if(screen==="clients")renderClients($("#globalSearch").value);if(screen==="sales")renderSales();if(screen==="receivables")renderReceivables();if(screen==="more")renderMore();if(screen==="closing")renderClosing()}
+function navigate(screen){document.body.classList.toggle("home-screen",screen==="home");document.querySelectorAll(".bottomNav button").forEach(b=>b.classList.toggle("active",b.dataset.screen===screen)); if(screen==="home")renderHome();if(screen==="clients")renderClients($("#globalSearch").value);if(screen==="sales")renderSales();if(screen==="receivables")renderReceivables();if(screen==="more")renderMore();if(screen==="closing")renderClosing()}
 document.querySelectorAll(".bottomNav button").forEach(b=>b.onclick=()=>navigate(b.dataset.screen));
 $("#globalSearch").oninput=e=>{if(document.querySelector(".bottomNav button.active")?.dataset.screen==="clients")renderClients(e.target.value)};
 function newClient(existing=null){
@@ -235,7 +236,7 @@ function newSale(pref="pao"){
    return;
  }
  openModal(`<h2>Nova venda</h2><form class="form" id="saleForm">
- <label>Cliente<select name="client" id="saleClient" required><option value="" selected>Selecione o cliente</option>${state.clients.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("")}</select></label><div id="saleCreditInfo" class="creditInfo" style="display:none"></div>
+ <label>Buscar cliente<input type="search" id="saleClientSearch" placeholder="Digite o nome do cliente..." autocomplete="off"></label><label>Cliente<select name="client" id="saleClient" required><option value="" selected>Selecione o cliente</option>${[...state.clients].sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR",{sensitivity:"base"})).map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("")}</select></label><div id="saleCreditInfo" class="creditInfo" style="display:none"></div>
  <div class="formGrid"><label>Tipo<select name="type"><option value="pao" ${pref==="pao"?"selected":""}>Pão</option><option value="doce" ${pref==="doce"?"selected":""}>Pão doce</option></select></label>
  <label>Quantidade<input name="qty" id="saleQty" type="number" min="1" value="1" required></label></div>
  <div class="formGrid saleValuesGrid"><label>Valor unitário<select name="unitPrice" id="unitPrice"><option value="12">R$ 12,00</option><option value="14">R$ 14,00</option><option value="16">R$ 16,00</option><option value="18" selected>R$ 18,00</option></select></label><label>Valor total<input name="total" id="saleTotal" type="number" step="0.01" min="0" value="18.00" readonly required></label></div>
@@ -244,6 +245,8 @@ function newSale(pref="pao"){
  <div id="payDateBox" class="hidden"><label>Data para pagamento<input name="payDate" type="date"></label></div>
  <button class="btn primary" type="submit">Registrar venda</button></form>`);
  $("#pay").onchange=e=>$("#payDateBox").classList.toggle("hidden",e.target.value!=="prazo");
+ const saleClientOptions=[...state.clients].sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR",{sensitivity:"base"}));
+ $("#saleClientSearch").oninput=e=>{const q=e.target.value.trim().toLocaleLowerCase("pt-BR");const sel=$("#saleClient");const current=sel.value;sel.innerHTML='<option value="">Selecione o cliente</option>'+saleClientOptions.filter(c=>String(c.name||"").toLocaleLowerCase("pt-BR").includes(q)).map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("");if(saleClientOptions.some(c=>c.id===current)&&saleClientOptions.find(c=>c.id===current).name.toLocaleLowerCase("pt-BR").includes(q))sel.value=current;};
  const updateSaleTotal=()=>{const qty=Math.max(1,Number($("#saleQty").value||1));const unit=Number($("#unitPrice").value||12);$("#saleTotal").value=(qty*unit).toFixed(2)};
  $("#saleQty").oninput=updateSaleTotal; $("#unitPrice").onchange=updateSaleTotal;
  $("#saleClient").onchange=()=>{const cid=$("#saleClient").value;const cr=creditTotalFor(cid);const el=$("#saleCreditInfo");if(el){el.style.display=cr>0?"block":"none";el.textContent=cr>0?`💳 Crédito disponível para esta compra: ${money(cr)}`:"";}};
@@ -253,7 +256,7 @@ function editSale(id){
  const s=state.sales.find(x=>x.id===id); if(!s)return;
  if(s.paid){toast("Esta venda já foi recebida e não pode ser editada para preservar o histórico financeiro.");return;}
  openModal(`<h2>Editar venda</h2><form class="form" id="editSaleForm">
- <label>Cliente<select name="client" required>${state.clients.map(c=>`<option value="${c.id}" ${c.id===s.clientId?"selected":""}>${esc(c.name)}</option>`).join("")}</select></label>
+ <label>Buscar cliente<input type="search" id="editSaleClientSearch" placeholder="Digite o nome do cliente..." autocomplete="off"></label><label>Cliente<select name="client" id="editSaleClient" required>${[...state.clients].sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR",{sensitivity:"base"})).map(c=>`<option value="${c.id}" ${c.id===s.clientId?"selected":""}>${esc(c.name)}</option>`).join("")}</select></label>
  <div class="formGrid"><label>Tipo<select name="type"><option value="pao" ${s.type==="pao"?"selected":""}>Pão</option><option value="doce" ${s.type==="doce"?"selected":""}>Pão doce</option></select></label>
  <label>Quantidade<input name="qty" id="editSaleQty" type="number" min="1" value="${Number(s.qty)||1}" required></label></div>
  <div class="formGrid saleValuesGrid"><label>Valor unitário<select name="unitPrice" id="editUnitPrice">${[12,14,16,18].map(v=>`<option value="${v}" ${Number(s.unitPrice)===v?"selected":""}>R$ ${v.toFixed(2).replace(".",",")}</option>`).join("")}</select></label><label>Valor total<input name="total" id="editSaleTotal" type="number" step="0.01" min="0" value="${Number(s.total||0).toFixed(2)}" readonly required></label></div>
@@ -262,6 +265,8 @@ function editSale(id){
  <button class="btn primary" type="submit">Salvar alterações</button></form>`);
  const update=()=>{const q=Math.max(1,Number($("#editSaleQty").value||1));const u=Number($("#editUnitPrice").value||12);$("#editSaleTotal").value=(q*u).toFixed(2)};
  $("#editSaleQty").oninput=update; $("#editUnitPrice").onchange=update; $("#editPay").onchange=e=>$("#editPayDateBox").classList.toggle("hidden",e.target.value!=="prazo");
+ const editClientOptions=[...state.clients].sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR",{sensitivity:"base"}));
+ $("#editSaleClientSearch").oninput=e=>{const q=e.target.value.trim().toLocaleLowerCase("pt-BR");const sel=$("#editSaleClient");const current=sel.value;sel.innerHTML=editClientOptions.filter(c=>String(c.name||"").toLocaleLowerCase("pt-BR").includes(q)).map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("");if(editClientOptions.some(c=>c.id===current&&String(c.name||"").toLocaleLowerCase("pt-BR").includes(q)))sel.value=current;};
  $("#editSaleForm").onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const c=state.clients.find(x=>x.id===String(f.get("client")));if(!c)return toast("Cliente inválido.");s.clientId=c.id;s.clientName=c.name;s.clientPhone=c.phone||"";s.clientAddress=c.address||"";s.type=f.get("type");s.qty=Number(f.get("qty"));s.unitPrice=Number(f.get("unitPrice"));s.total=Number(f.get("total"));s.payment=f.get("payment");s.payDate=f.get("payDate")||null;s.date=f.get("date");s.where=f.get("where");save();closeModal();renderSales();toast("Venda alterada com sucesso!")};
 }
 function deleteSale(id){
