@@ -1,5 +1,5 @@
-const CACHE="pao-dilma-v37-home-fixed";
-const ASSETS=["./","./index.html","./styles.css?v=37","./effects.css?v=37","./app.js?v=37","./drive.js?v=27","./manifest.json","./icon-180.png","./icon-192.png","./icon-512.png"];
+const CACHE="pao-dilma-v38-client-picker";
+const ASSETS=["./","./index.html","./styles.css?v=38","./effects.css?v=38","./app.js?v=38","./drive.js?v=27","./manifest.json","./icon-180.png","./icon-192.png","./icon-512.png"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));
 });

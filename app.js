@@ -67,7 +67,7 @@ function saleRow(s){
  return `<div class="listRow"><div class="avatar">${esc(initials)}</div><div><b>${esc(c.name||"Cliente")}</b><div class="muted">${s.time||""}</div></div><div class="details muted">${s.qty} ${s.type==="pao"?"pães":"pães doces"} ${s.unitPrice?` · ${money(s.unitPrice)}/un.`:""}</div><div class="amount"><b>${money(s.total)}</b><div class="saleActions"><button class="btn editSaleBtn" onclick="editSale('${s.id}')">✏️ Editar</button><button class="btn deleteSaleBtn" onclick="deleteSale('${s.id}')">🗑️ Excluir</button></div></div></div>`
 }
 function renderClients(filter=""){
- const list=state.clients.filter(c=>(c.name+" "+c.phone+" "+c.address).toLowerCase().includes(filter.toLowerCase()));
+ const list=state.clients.filter(c=>(c.name+" "+c.phone+" "+c.address).toLocaleLowerCase("pt-BR").includes(filter.toLocaleLowerCase("pt-BR"))).sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR",{sensitivity:"base"}));
  $("#content").innerHTML=`<h2 class="screenTitle">Clientes</h2><div class="toolbar"><button class="btn primary" onclick="newClient()">+ Novo cliente</button></div><section class="panel">${list.map(c=>`<div class="listRow clientRow"><div class="avatar">${esc(c.name.split(" ").map(x=>x[0]).slice(0,2).join(""))}</div><div><b>${esc(c.name)}</b><div class="muted">${esc(c.phone)} · ${esc(c.address)}</div></div><div class="clientActions"><a class="mapBtn" href="${maps(c.address)}" target="_blank" aria-label="Abrir endereço no Maps">📍</a><button class="btn editBtn" onclick="editClient('${c.id}')">✏️ Editar</button><button class="btn deleteBtn" onclick="deleteClient('${c.id}')">🗑️ Excluir</button></div></div>`).join("")||'<div class="empty">Nenhum cliente encontrado.</div>'}</section>`;
 }
 function renderSales(){
@@ -87,7 +87,7 @@ function renderReceivables(){
  const groups={};
  due.forEach(s=>{const c=state.clients.find(c=>c.id===s.clientId);const month=(s.payment==="prazo"?(s.payDate||s.date):s.date).slice(0,7);const k=s.clientId+"_"+month;(groups[k]??={client:c,month,total:0,sales:[]});groups[k].total+=Number(s.total||0);groups[k].sales.push(s)});
  Object.values(groups).forEach(g=>{g.received=receiptTotalFor(g.client?.id,g.month);g.balance=Math.max(0,g.total-g.received)});
- const entries=Object.entries(groups).filter(([k,g])=>g.balance>0);
+ const entries=Object.entries(groups).filter(([k,g])=>g.balance>0).sort((a,b)=>String(a[1].client?.name||"Cliente").localeCompare(String(b[1].client?.name||"Cliente"),"pt-BR",{sensitivity:"base"}));
  $("#content").innerHTML=`<h2 class="screenTitle">A receber</h2><section class="panel">${entries.map(([k,g])=>`<div class="listRow"><div class="avatar">💰</div><div><button class="linkBtn" onclick="showPurchaseReport('${k}')" title="Ver compras do mês"><b>${esc(g.client?.name||"Cliente")}</b></button><div class="muted">${monthLabel(g.month)} · ${g.sales.length} venda(s)</div><div class="muted small">👆 Ver compras do mês${g.received?` · Já pago: ${money(g.received)}`:""}</div></div><div><b>${money(g.balance)}</b><div class="muted ${g.sales.some(s=>s.payDate<today())?'danger':''}">${(g.sales.some(s=>s.payment==="mensal")?'MENSAL':(g.sales.some(s=>s.payment==="prazo"&&s.payDate<today())?'VENCIDO':(g.sales.some(s=>s.payment!=="prazo")?'AGUARDANDO RECEBIMENTO':'A vencer')))}</div></div><div><button class="btn gold" onclick="payGroup('${k}')">Recebido</button>${g.sales.some(s=>s.payDate<today())?`<button class="btn" onclick="charge('${g.client.id}','${g.balance}')">WhatsApp</button>`:""}</div></div>`).join("")||'<div class="empty">Nenhuma conta em aberto.</div>'}</section>`;
 }
 function renderCosts(){
@@ -230,13 +230,37 @@ function deleteClient(id){
  state.sales.filter(s=>s.clientId===id).forEach(s=>{s.clientName=c.name;s.clientPhone=c.phone;s.clientAddress=c.address;s.clientId=null});
  state.clients=state.clients.filter(x=>x.id!==id); save(); renderClients($("#globalSearch").value); toast("Cliente excluído.");
 }
+function clientPickerMarkup(inputId, hiddenId, selectedId=""){
+ const clients=[...state.clients].sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR",{sensitivity:"base"}));
+ const selected=clients.find(c=>c.id===selectedId);
+ return `<div class="clientPicker"><label>Buscar cliente<input type="search" id="${inputId}" placeholder="Digite o nome ou as iniciais (ex.: JS)" autocomplete="off" value="${esc(selected?.name||"")}" aria-label="Buscar cliente pelo nome ou iniciais"></label><input type="hidden" name="client" id="${hiddenId}" value="${esc(selectedId)}"><div class="clientPickerResults" id="${inputId}Results" role="listbox" hidden></div></div>`;
+}
+function bindClientPicker(inputId, hiddenId, initialId=""){
+ const input=$("#"+inputId), hidden=$("#"+hiddenId), results=$("#"+inputId+"Results");
+ const clients=[...state.clients].sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR",{sensitivity:"base"}));
+ const norm=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("pt-BR").trim();
+ const initials=c=>String(c.name||"").trim().split(/\s+/).map(w=>w[0]||"").join("");
+ function choose(c){input.value=c.name;hidden.value=c.id;results.hidden=true;results.innerHTML="";input.setCustomValidity("");input.dispatchEvent(new Event("clientselected"));}
+ function draw(){const q=norm(input.value);hidden.value="";input.setCustomValidity("");
+  if(!q){results.hidden=true;results.innerHTML="";return;}
+  const matches=clients.filter(c=>{const name=norm(c.name);const init=norm(initials(c));const words=norm(c.name).split(/\s+/);return name.includes(q)||init.startsWith(q)||words.some(w=>w.startsWith(q));}).slice(0,30);
+  results.innerHTML=matches.map(c=>`<button type="button" class="clientPickerOption" data-client-id="${esc(c.id)}" role="option"><span>${esc(c.name)}</span><small>${esc(initials(c).toUpperCase())}</small></button>`).join("");results.hidden=!matches.length;
+  results.querySelectorAll("[data-client-id]").forEach(btn=>btn.addEventListener("click",()=>{const c=clients.find(x=>x.id===btn.dataset.clientId);if(c)choose(c)}));
+ }
+ input.addEventListener("input",draw);input.addEventListener("focus",draw);
+ input.addEventListener("keydown",e=>{if(e.key==="Escape"){results.hidden=true;return;}if(e.key==="Enter"&&!results.hidden){const first=results.querySelector("[data-client-id]");if(first){e.preventDefault();const c=clients.find(x=>x.id===first.dataset.clientId);if(c)choose(c);}}});
+ input.addEventListener("blur",()=>setTimeout(()=>{if(!results.contains(document.activeElement))results.hidden=true;},120));
+ input.addEventListener("change",()=>{const match=clients.find(c=>norm(c.name)===norm(input.value));if(match)choose(match);else if(input.value.trim()){hidden.value="";input.setCustomValidity("Selecione um cliente na lista de resultados.");}else hidden.value="";});
+ if(initialId){const c=clients.find(x=>x.id===initialId);if(c)choose(c);}
+ return {input,hidden};
+}
 function newSale(pref="pao"){
  if(!state.clients.length){
    openModal(`<div class="emptySale"><div class="emptySaleIcon">🛒</div><h2>Nova venda</h2><p>Para registrar uma venda, primeiro é necessário ter pelo menos um cliente cadastrado.</p><button class="btn primary" onclick="closeModal();newClient()">+ Cadastrar cliente</button></div>`);
    return;
  }
  openModal(`<h2>Nova venda</h2><form class="form" id="saleForm">
- <label>Buscar cliente<input type="search" id="saleClientSearch" placeholder="Digite o nome do cliente..." autocomplete="off"></label><label>Cliente<select name="client" id="saleClient" required><option value="" selected>Selecione o cliente</option>${[...state.clients].sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR",{sensitivity:"base"})).map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("")}</select></label><div id="saleCreditInfo" class="creditInfo" style="display:none"></div>
+ ${clientPickerMarkup("saleClientSearch","saleClient")}<div id="saleCreditInfo" class="creditInfo" style="display:none"></div>
  <div class="formGrid"><label>Tipo<select name="type"><option value="pao" ${pref==="pao"?"selected":""}>Pão</option><option value="doce" ${pref==="doce"?"selected":""}>Pão doce</option></select></label>
  <label>Quantidade<input name="qty" id="saleQty" type="number" min="1" value="1" required></label></div>
  <div class="formGrid saleValuesGrid"><label>Valor unitário<select name="unitPrice" id="unitPrice"><option value="12">R$ 12,00</option><option value="14">R$ 14,00</option><option value="16">R$ 16,00</option><option value="18" selected>R$ 18,00</option></select></label><label>Valor total<input name="total" id="saleTotal" type="number" step="0.01" min="0" value="18.00" readonly required></label></div>
@@ -245,18 +269,18 @@ function newSale(pref="pao"){
  <div id="payDateBox" class="hidden"><label>Data para pagamento<input name="payDate" type="date"></label></div>
  <button class="btn primary" type="submit">Registrar venda</button></form>`);
  $("#pay").onchange=e=>$("#payDateBox").classList.toggle("hidden",e.target.value!=="prazo");
- const saleClientOptions=[...state.clients].sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR",{sensitivity:"base"}));
- $("#saleClientSearch").oninput=e=>{const q=e.target.value.trim().toLocaleLowerCase("pt-BR");const sel=$("#saleClient");const current=sel.value;sel.innerHTML='<option value="">Selecione o cliente</option>'+saleClientOptions.filter(c=>String(c.name||"").toLocaleLowerCase("pt-BR").includes(q)).map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("");if(saleClientOptions.some(c=>c.id===current)&&saleClientOptions.find(c=>c.id===current).name.toLocaleLowerCase("pt-BR").includes(q))sel.value=current;};
+ const salePicker=bindClientPicker("saleClientSearch","saleClient");
+ salePicker.input.addEventListener("clientselected",()=>{const cid=salePicker.hidden.value;const cr=creditTotalFor(cid);const el=$("#saleCreditInfo");if(el){el.style.display=cr>0?"block":"none";el.textContent=cr>0?`💳 Crédito disponível para esta compra: ${money(cr)}`:"";}});
  const updateSaleTotal=()=>{const qty=Math.max(1,Number($("#saleQty").value||1));const unit=Number($("#unitPrice").value||12);$("#saleTotal").value=(qty*unit).toFixed(2)};
  $("#saleQty").oninput=updateSaleTotal; $("#unitPrice").onchange=updateSaleTotal;
- $("#saleClient").onchange=()=>{const cid=$("#saleClient").value;const cr=creditTotalFor(cid);const el=$("#saleCreditInfo");if(el){el.style.display=cr>0?"block":"none";el.textContent=cr>0?`💳 Crédito disponível para esta compra: ${money(cr)}`:"";}};
- $("#saleForm").onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const clientId=String(f.get("client")||"").trim();if(!clientId){toast("Selecione um cliente antes de registrar a venda.");$("select[name=client]").focus();return;}const client=state.clients.find(c=>c.id===clientId);if(!client){toast("Cliente inválido. Selecione um cliente cadastrado.");return;}const originalTotal=Number(f.get("total"));const creditAvailable=creditTotalFor(clientId);const creditUsed=useCredit(clientId,Math.min(originalTotal,creditAvailable));const finalTotal=Number((originalTotal-creditUsed).toFixed(2));const s={id:crypto.randomUUID(),clientId:clientId,clientName:client.name,clientPhone:client.phone||"",clientAddress:client.address||"",type:f.get("type"),qty:Number(f.get("qty")),unitPrice:Number(f.get("unitPrice")),sugar:f.get("sugar"),total:originalTotal,payment:f.get("payment"),payDate:f.get("payDate")||null,date:f.get("date"),where:f.get("where"),paid:false,delivered:false,time:new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}),creditUsed};state.sales.push(s);save();closeModal();toast(creditUsed>0?`Venda registrada. Crédito utilizado: ${money(creditUsed)}${finalTotal>0?` · Restante a pagar: ${money(finalTotal)}`:" · Venda totalmente coberta pelo crédito."}`:"Venda registrada!");navigate("receivables")}
+ 
+ $("#saleForm").onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const clientId=String(f.get("client")||"").trim();if(!clientId){toast("Digite o nome ou as iniciais e selecione um cliente na lista.");$("#saleClientSearch").focus();return;}const client=state.clients.find(c=>c.id===clientId);if(!client){toast("Cliente inválido. Selecione um cliente cadastrado.");return;}const originalTotal=Number(f.get("total"));const creditAvailable=creditTotalFor(clientId);const creditUsed=useCredit(clientId,Math.min(originalTotal,creditAvailable));const finalTotal=Number((originalTotal-creditUsed).toFixed(2));const s={id:crypto.randomUUID(),clientId:clientId,clientName:client.name,clientPhone:client.phone||"",clientAddress:client.address||"",type:f.get("type"),qty:Number(f.get("qty")),unitPrice:Number(f.get("unitPrice")),sugar:f.get("sugar"),total:originalTotal,payment:f.get("payment"),payDate:f.get("payDate")||null,date:f.get("date"),where:f.get("where"),paid:false,delivered:false,time:new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}),creditUsed};state.sales.push(s);save();closeModal();toast(creditUsed>0?`Venda registrada. Crédito utilizado: ${money(creditUsed)}${finalTotal>0?` · Restante a pagar: ${money(finalTotal)}`:" · Venda totalmente coberta pelo crédito."}`:"Venda registrada!");navigate("receivables")}
 }
 function editSale(id){
  const s=state.sales.find(x=>x.id===id); if(!s)return;
  if(s.paid){toast("Esta venda já foi recebida e não pode ser editada para preservar o histórico financeiro.");return;}
  openModal(`<h2>Editar venda</h2><form class="form" id="editSaleForm">
- <label>Buscar cliente<input type="search" id="editSaleClientSearch" placeholder="Digite o nome do cliente..." autocomplete="off"></label><label>Cliente<select name="client" id="editSaleClient" required>${[...state.clients].sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR",{sensitivity:"base"})).map(c=>`<option value="${c.id}" ${c.id===s.clientId?"selected":""}>${esc(c.name)}</option>`).join("")}</select></label>
+ ${clientPickerMarkup("editSaleClientSearch","editSaleClient",s.clientId||"")}
  <div class="formGrid"><label>Tipo<select name="type"><option value="pao" ${s.type==="pao"?"selected":""}>Pão</option><option value="doce" ${s.type==="doce"?"selected":""}>Pão doce</option></select></label>
  <label>Quantidade<input name="qty" id="editSaleQty" type="number" min="1" value="${Number(s.qty)||1}" required></label></div>
  <div class="formGrid saleValuesGrid"><label>Valor unitário<select name="unitPrice" id="editUnitPrice">${[12,14,16,18].map(v=>`<option value="${v}" ${Number(s.unitPrice)===v?"selected":""}>R$ ${v.toFixed(2).replace(".",",")}</option>`).join("")}</select></label><label>Valor total<input name="total" id="editSaleTotal" type="number" step="0.01" min="0" value="${Number(s.total||0).toFixed(2)}" readonly required></label></div>
@@ -265,9 +289,8 @@ function editSale(id){
  <button class="btn primary" type="submit">Salvar alterações</button></form>`);
  const update=()=>{const q=Math.max(1,Number($("#editSaleQty").value||1));const u=Number($("#editUnitPrice").value||12);$("#editSaleTotal").value=(q*u).toFixed(2)};
  $("#editSaleQty").oninput=update; $("#editUnitPrice").onchange=update; $("#editPay").onchange=e=>$("#editPayDateBox").classList.toggle("hidden",e.target.value!=="prazo");
- const editClientOptions=[...state.clients].sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR",{sensitivity:"base"}));
- $("#editSaleClientSearch").oninput=e=>{const q=e.target.value.trim().toLocaleLowerCase("pt-BR");const sel=$("#editSaleClient");const current=sel.value;sel.innerHTML=editClientOptions.filter(c=>String(c.name||"").toLocaleLowerCase("pt-BR").includes(q)).map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("");if(editClientOptions.some(c=>c.id===current&&String(c.name||"").toLocaleLowerCase("pt-BR").includes(q)))sel.value=current;};
- $("#editSaleForm").onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const c=state.clients.find(x=>x.id===String(f.get("client")));if(!c)return toast("Cliente inválido.");s.clientId=c.id;s.clientName=c.name;s.clientPhone=c.phone||"";s.clientAddress=c.address||"";s.type=f.get("type");s.qty=Number(f.get("qty"));s.unitPrice=Number(f.get("unitPrice"));s.total=Number(f.get("total"));s.payment=f.get("payment");s.payDate=f.get("payDate")||null;s.date=f.get("date");s.where=f.get("where");save();closeModal();renderSales();toast("Venda alterada com sucesso!")};
+ bindClientPicker("editSaleClientSearch","editSaleClient",s.clientId||"");
+ $("#editSaleForm").onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const c=state.clients.find(x=>x.id===String(f.get("client")));if(!c){toast("Digite o nome ou as iniciais e selecione um cliente na lista.");$("#editSaleClientSearch").focus();return;}s.clientId=c.id;s.clientName=c.name;s.clientPhone=c.phone||"";s.clientAddress=c.address||"";s.type=f.get("type");s.qty=Number(f.get("qty"));s.unitPrice=Number(f.get("unitPrice"));s.total=Number(f.get("total"));s.payment=f.get("payment");s.payDate=f.get("payDate")||null;s.date=f.get("date");s.where=f.get("where");save();closeModal();renderSales();toast("Venda alterada com sucesso!")};
 }
 function deleteSale(id){
  const s=state.sales.find(x=>x.id===id); if(!s)return;

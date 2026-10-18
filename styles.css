@@ -310,3 +310,6 @@ body{padding-bottom:calc(var(--navH) + env(safe-area-inset-bottom) + 12px)}
  body.home-screen .homeDashboard .actions{gap:5px}
  body.home-screen .homeDashboard .homeUtility{padding:7px}
 }
+
+/* Busca única de cliente com sugestões por nome ou iniciais */
+.clientPicker{position:relative;min-width:0}.clientPickerResults{position:absolute;z-index:120;top:calc(100% + 3px);left:0;right:0;max-height:220px;overflow-y:auto;background:#24150d;border:1px solid #8a5b31;border-radius:12px;box-shadow:0 12px 28px #0009;padding:4px}.clientPickerResults[hidden]{display:none!important}.clientPickerOption{display:flex;width:100%;justify-content:space-between;align-items:center;gap:12px;padding:11px 12px;border:0;border-radius:8px;background:transparent;color:#fff;text-align:left;cursor:pointer}.clientPickerOption:hover,.clientPickerOption:focus{background:#49301e;outline:0}.clientPickerOption small{color:#f0b34a;font-weight:700;letter-spacing:.06em}
