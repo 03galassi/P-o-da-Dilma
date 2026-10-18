@@ -265,3 +265,16 @@ body{padding-bottom:calc(var(--navH) + env(safe-area-inset-bottom) + 12px)}
 .homeDashboard .actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;width:100%}
 .homeDashboard .action{min-width:0}
 @media(max-width:420px){.homeUtilities{gap:9px}.homeUtility{padding:13px 10px}.homeDashboard .actions{grid-template-columns:1fr}}
+
+
+/* V36 — painel inicial sem atalhos de Pão/Pão Doce; espaço redistribuído */
+.homeDashboard{gap:12px}
+.homeDashboard .hero{height:clamp(120px,18vh,175px)}
+.homeDashboard .stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.homeDashboard .actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.homeDashboard .homeUtilities{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0;width:100%}
+.homeDashboard .homeUtility{min-height:104px;justify-content:center;padding:16px;gap:7px}
+.homeDashboard .homeUtility b{font-size:16px}
+.homeDashboard .homeUtility small{font-size:13px;line-height:1.35}
+.homeDashboard .reportUtility{border-color:rgba(255,174,22,.7);box-shadow:inset 0 0 0 1px rgba(255,174,22,.12)}
+@media(max-width:420px){.homeDashboard{gap:10px}.homeDashboard .stats{gap:7px}.homeDashboard .stat{padding:8px 6px;min-width:0}.homeDashboard .stat strong{font-size:clamp(14px,4vw,18px)}.homeDashboard .actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.homeDashboard .action{padding:10px 7px;font-size:13px}.homeDashboard .homeUtilities{gap:7px}.homeDashboard .homeUtility{padding:12px 10px;min-height:96px}}

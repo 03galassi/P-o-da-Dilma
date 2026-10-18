@@ -42,7 +42,7 @@ function imageFallback(img,kind){img.style.display="none";img.parentElement.clas
 function renderHome(){
  const sales=state.sales.filter(s=>s.date===today());
  const total=sales.reduce((a,s)=>a+Number(s.total),0);
- const due=state.sales.filter(s=>(s.payment==="prazo"&&s.paid!==true)||(s.payment!=="prazo"&&s.delivered&&s.paid!==true));
+ const due=state.sales.filter(s=>s.paid!==true);
  const costsMonth=state.costs.filter(c=>String(c.date||"").slice(0,7)===monthNow()).reduce((a,c)=>a+Number(c.total||0),0);
  $("#content").innerHTML=`
  <div class="homeDashboard">
@@ -50,12 +50,12 @@ function renderHome(){
  <section class="stats">
   <button type="button" class="stat" onclick="navigate('sales')" aria-label="Abrir vendas"><div class="ico">🛒</div><small>Vendas hoje</small><strong>${money(total)}</strong><small>${sales.length} vendas</small></button>
   <button type="button" class="stat" onclick="navigate('clients')" aria-label="Abrir clientes"><div class="ico">👥</div><small>Clientes</small><strong>${state.clients.length}</strong><small>cadastrados</small></button>
-  <button type="button" class="stat" onclick="navigate('receivables')" aria-label="Abrir contas a receber"><div class="ico">💰</div><small>A receber</small><strong>R$</strong><small>ver contas</small></button>
+  <button type="button" class="stat" onclick="navigate('receivables')" aria-label="Abrir contas a receber"><div class="ico">💰</div><small>A receber</small><strong>${money(due.reduce((a,s)=>a+Number(s.total||0),0))}</strong><small>${due.length} venda(s) pendente(s)</small></button>
  </section>
  <section class="actions"><button class="action sale" onclick="newSale()">🛒 NOVA VENDA <span>›</span></button><button class="action client" onclick="newClient()">👤 NOVO CLIENTE <span>›</span></button></section>
- <section class="homeUtilities">
-  <button class="homeUtility" onclick="navigate('more')"><span>☁️</span><b>Backup</b><small>Salvar ou restaurar dados</small></button>
-  <button class="homeUtility" onclick="navigate('closing')"><span>📊</span><b>Relatórios</b><small>Resumo mensal e PDF</small></button>
+ <section class="homeUtilities" aria-label="Ferramentas administrativas">
+  <button type="button" class="homeUtility" onclick="navigate('more')"><span>☁️</span><b>Backup</b><small>Salvar ou restaurar dados</small></button>
+  <button type="button" class="homeUtility reportUtility" onclick="navigate('closing')"><span>📊</span><b>Relatórios</b><small>Resumo mensal, fechamento e PDF</small></button>
  </section>
  </div>`;
  updateBadges();
@@ -135,7 +135,7 @@ function renderClosing(){
  const currentStats=monthStats(current);
  const targetText=monthLabel(target);
  const status=existing?`Fechado em ${new Date(existing.closedAt).toLocaleDateString("pt-BR")}`:(available?`Fechamento disponível desde o dia 10.`:`Disponível no dia 10 de cada mês.`);
- $("#content").innerHTML=`<div class="screenTitleRow"><h2 class="screenTitle">Backup e Relatórios</h2><button class="btn" onclick="navigate('home')">← Voltar</button></div>
+ $("#content").innerHTML=`<div class="screenTitleRow"><h2 class="screenTitle">Relatórios</h2><button class="btn" onclick="navigate('home')">← Voltar</button></div>
  <section class="panel"><div class="panelTitle"><span>Relatório</span></div>
  <div class="formGrid"><label>Mês do relatório<select id="reportMonth" onchange="renderClosingForMonth(this.value)"><option value="${current}" selected>${esc(monthLabel(current))} (atual)</option><option value="${target}">${esc(targetText)} (fechamento)</option></select></label></div>
  <div class="closingGrid"><div><small>Vendas</small><b>${currentStats.sales.length}</b></div><div><small>Faturamento</small><b>${money(currentStats.revenue)}</b></div><div><small>Recebimentos</small><b>${money(currentStats.recebido)}</b></div><div><small>A receber</small><b>${money(currentStats.aReceberAtual)}</b></div><div><small>Gastos</small><b>${money(currentStats.expense)}</b></div><div><small>Resultado</small><b>${money(currentStats.revenue-currentStats.expense)}</b></div></div>
