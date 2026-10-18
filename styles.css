@@ -313,3 +313,17 @@ body{padding-bottom:calc(var(--navH) + env(safe-area-inset-bottom) + 12px)}
 
 /* Busca única de cliente com sugestões por nome ou iniciais */
 .clientPicker{position:relative;min-width:0}.clientPickerResults{position:absolute;z-index:120;top:calc(100% + 3px);left:0;right:0;max-height:220px;overflow-y:auto;background:#24150d;border:1px solid #8a5b31;border-radius:12px;box-shadow:0 12px 28px #0009;padding:4px}.clientPickerResults[hidden]{display:none!important}.clientPickerOption{display:flex;width:100%;justify-content:space-between;align-items:center;gap:12px;padding:11px 12px;border:0;border-radius:8px;background:transparent;color:#fff;text-align:left;cursor:pointer}.clientPickerOption:hover,.clientPickerOption:focus{background:#49301e;outline:0}.clientPickerOption small{color:#f0b34a;font-weight:700;letter-spacing:.06em}
+
+/* V40 — painel inicial totalmente visível acima da navegação fixa */
+@media(max-width:760px){
+ body.home-screen #app{height:100dvh;min-height:0;overflow:hidden}
+ body.home-screen main{flex:1 1 0;min-height:0;height:0;margin:0 0 calc(var(--navH) + env(safe-area-inset-bottom));padding:8px 10px;overflow:hidden;display:flex;flex-direction:column}
+ body.home-screen .homeDashboard{flex:1 1 auto;width:100%;height:100%;min-height:0;justify-content:space-between;gap:clamp(5px,1vh,10px)}
+ body.home-screen .homeDashboard .hero{flex:1 1 20%;min-height:85px;max-height:clamp(105px,17vh,155px)}
+ body.home-screen .homeDashboard .stats{flex:0 0 auto}
+ body.home-screen .homeDashboard .stat{height:clamp(78px,13vh,112px)}
+ body.home-screen .homeDashboard .actions{flex:0 0 auto}
+ body.home-screen .homeDashboard .homeUtilities{flex:0 0 auto}
+ body.home-screen .homeDashboard .homeUtility{min-height:clamp(58px,9vh,78px)}
+}
+@media(max-width:430px){body.home-screen main{padding:7px 10px}body.home-screen .homeDashboard{gap:6px}body.home-screen .homeDashboard .hero{min-height:82px;max-height:15vh}body.home-screen .homeDashboard .homeUtility small{font-size:9px}}

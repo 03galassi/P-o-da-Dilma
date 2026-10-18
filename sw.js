@@ -1,5 +1,5 @@
-const CACHE="pao-dilma-v39-direct-receivables";
-const ASSETS=["./","./index.html","./styles.css?v=39","./effects.css?v=39","./app.js?v=39","./drive.js?v=27","./manifest.json","./icon-180.png","./icon-192.png","./icon-512.png"];
+const CACHE="pao-dilma-v40-direct-receivables";
+const ASSETS=["./","./index.html","./styles.css?v=40","./effects.css?v=40","./app.js?v=40","./drive.js?v=27","./manifest.json","./icon-180.png","./icon-192.png","./icon-512.png"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));
 });
