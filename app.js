@@ -26,10 +26,12 @@ function save(){
  if(window.paoFirebaseSave) window.paoFirebaseSave(state);
 }
 function receiptTotalFor(cid,month){return state.receipts.filter(r=>r.clientId===cid&&r.month===month).reduce((a,r)=>a+Number(r.amount||0),0)}
+// Vincula recebimentos às vendas específicas para pagamentos antigos não ocultarem vendas novas.
+function receiptTotalForSales(cid,month,sales){const ids=new Set(sales.map(s=>s.id));return state.receipts.filter(r=>r.clientId===cid&&r.month===month&&Array.isArray(r.saleIds)&&r.saleIds.some(id=>ids.has(id))).reduce((a,r)=>a+Number(r.amount||0),0)}
 function creditTotalFor(cid){return state.credits.filter(c=>c.clientId===cid).reduce((a,c)=>a+Number(c.amount||0),0)}
 function addCredit(cid,amount){if(!cid||amount<=0)return;state.credits.push({id:crypto.randomUUID(),clientId:cid,amount:Number(amount),date:today()});}
 function useCredit(cid,amount){let remaining=Math.max(0,Number(amount)||0);if(!cid||remaining<=0)return 0;for(const c of state.credits.filter(x=>x.clientId===cid&&Number(x.amount)>0)){const use=Math.min(remaining,Number(c.amount));c.amount=Number((Number(c.amount)-use).toFixed(2));remaining-=use;if(remaining<=0)break;}state.credits=state.credits.filter(c=>Number(c.amount)>0.009);return Number((Number(amount)-remaining).toFixed(2));}
-function receivableTotal(){const groups={};state.sales.filter(s=>!s.paid).forEach(s=>{const month=(s.payment==="prazo"?(s.payDate||s.date):s.date).slice(0,7);const k=s.clientId+"_"+month;(groups[k]??={cid:s.clientId,month,total:0});groups[k].total+=Number(s.total||0)});return Object.values(groups).reduce((a,g)=>a+Math.max(0,g.total-receiptTotalFor(g.cid,g.month)),0)}
+function receivableTotal(){const groups={};state.sales.filter(s=>!s.paid).forEach(s=>{const month=(s.payment==="prazo"?(s.payDate||s.date):s.date).slice(0,7);const k=s.clientId+"_"+month;(groups[k]??={cid:s.clientId,month,total:0});groups[k].total+=Number(s.total||0)});return Object.values(groups).reduce((a,g)=>{const open=state.sales.filter(s=>!s.paid&&s.clientId===g.cid&&(s.payment==="prazo"?(s.payDate||s.date):s.date).slice(0,7)===g.month);return a+Math.max(0,g.total-receiptTotalForSales(g.cid,g.month,open))},0)}
 function updateBottomNav(){const el=$("#navDueAmount");if(el)el.textContent="R$";updateBadges();}
 function openModal(html){$("#modalBody").innerHTML=html;$("#modal").classList.remove("hidden")}
 function closeModal(){$("#modal").classList.add("hidden")}
@@ -86,7 +88,7 @@ function renderReceivables(){
  const due=state.sales.filter(s=>!s.paid);
  const groups={};
  due.forEach(s=>{const c=state.clients.find(c=>c.id===s.clientId);const month=(s.payment==="prazo"?(s.payDate||s.date):s.date).slice(0,7);const k=s.clientId+"_"+month;(groups[k]??={client:c,month,total:0,sales:[]});groups[k].total+=Number(s.total||0);groups[k].sales.push(s)});
- Object.values(groups).forEach(g=>{g.received=receiptTotalFor(g.client?.id,g.month);g.balance=Math.max(0,g.total-g.received)});
+ Object.values(groups).forEach(g=>{g.received=receiptTotalForSales(g.client?.id,g.month,g.sales);g.balance=Math.max(0,g.total-g.received)});
  const entries=Object.entries(groups).filter(([k,g])=>g.balance>0).sort((a,b)=>String(a[1].client?.name||"Cliente").localeCompare(String(b[1].client?.name||"Cliente"),"pt-BR",{sensitivity:"base"}));
  $("#content").innerHTML=`<h2 class="screenTitle">A receber</h2><section class="panel">${entries.map(([k,g])=>`<div class="listRow"><div class="avatar">💰</div><div><button class="linkBtn" onclick="showPurchaseReport('${k}')" title="Ver compras do mês"><b>${esc(g.client?.name||"Cliente")}</b></button><div class="muted">${monthLabel(g.month)} · ${g.sales.length} venda(s)</div><div class="muted small">👆 Ver compras do mês${g.received?` · Já pago: ${money(g.received)}`:""}</div></div><div><b>${money(g.balance)}</b><div class="muted ${g.sales.some(s=>s.payDate<today())?'danger':''}">${(g.sales.some(s=>s.payment==="mensal")?'MENSAL':(g.sales.some(s=>s.payment==="prazo"&&s.payDate<today())?'VENCIDO':(g.sales.some(s=>s.payment!=="prazo")?'AGUARDANDO RECEBIMENTO':'A vencer')))}</div></div><div><button class="btn gold" onclick="payGroup('${k}')">Recebido</button>${g.sales.some(s=>s.payDate<today())?`<button class="btn" onclick="charge('${g.client.id}','${g.balance}')">WhatsApp</button>`:""}</div></div>`).join("")||'<div class="empty">Nenhuma conta em aberto.</div>'}</section>`;
 }
@@ -274,7 +276,7 @@ function newSale(pref="pao"){
  const updateSaleTotal=()=>{const qty=Math.max(1,Number($("#saleQty").value||1));const unit=Number($("#unitPrice").value||12);$("#saleTotal").value=(qty*unit).toFixed(2)};
  $("#saleQty").oninput=updateSaleTotal; $("#unitPrice").onchange=updateSaleTotal;
  
- $("#saleForm").onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const clientId=String(f.get("client")||"").trim();if(!clientId){toast("Digite o nome ou as iniciais e selecione um cliente na lista.");$("#saleClientSearch").focus();return;}const client=state.clients.find(c=>c.id===clientId);if(!client){toast("Cliente inválido. Selecione um cliente cadastrado.");return;}const originalTotal=Number(f.get("total"));const creditAvailable=creditTotalFor(clientId);const creditUsed=useCredit(clientId,Math.min(originalTotal,creditAvailable));const finalTotal=Number((originalTotal-creditUsed).toFixed(2));const s={id:crypto.randomUUID(),clientId:clientId,clientName:client.name,clientPhone:client.phone||"",clientAddress:client.address||"",type:f.get("type"),qty:Number(f.get("qty")),unitPrice:Number(f.get("unitPrice")),sugar:f.get("sugar"),total:originalTotal,payment:f.get("payment"),payDate:f.get("payDate")||null,date:f.get("date"),where:f.get("where"),paid:false,delivered:false,time:new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}),creditUsed};state.sales.push(s);save();closeModal();toast(creditUsed>0?`Venda registrada. Crédito utilizado: ${money(creditUsed)}${finalTotal>0?` · Restante a pagar: ${money(finalTotal)}`:" · Venda totalmente coberta pelo crédito."}`:"Venda registrada!");navigate("receivables")}
+ $("#saleForm").onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const clientId=String(f.get("client")||"").trim();if(!clientId){toast("Digite o nome ou as iniciais e selecione um cliente na lista.");$("#saleClientSearch").focus();return;}const client=state.clients.find(c=>c.id===clientId);if(!client){toast("Cliente inválido. Selecione um cliente cadastrado.");return;}const originalTotal=Number(f.get("total"));const creditAvailable=creditTotalFor(clientId);const creditUsed=useCredit(clientId,Math.min(originalTotal,creditAvailable));const finalTotal=Number((originalTotal-creditUsed).toFixed(2));const s={id:crypto.randomUUID(),clientId:clientId,clientName:client.name,clientPhone:client.phone||"",clientAddress:client.address||"",type:f.get("type"),qty:Number(f.get("qty")),unitPrice:Number(f.get("unitPrice")),sugar:f.get("sugar"),total:originalTotal,payment:f.get("payment"),payDate:f.get("payDate")||null,date:f.get("date"),where:f.get("where"),paid:false,delivered:false,time:new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}),creditUsed};state.sales.push(s);save();closeModal();toast(creditUsed>0?`Venda registrada. Crédito utilizado: ${money(creditUsed)}${finalTotal>0?` · Restante a pagar: ${money(finalTotal)}`:" · Venda totalmente coberta pelo crédito."}`:"Venda registrada e enviada para A receber!");navigate("receivables");renderReceivables()}
 }
 function editSale(id){
  const s=state.sales.find(x=>x.id===id); if(!s)return;
@@ -317,7 +319,7 @@ function payGroup(k){
  const c=state.clients.find(x=>x.id===cid);
  const nome=c?.name||"cliente";
  const total=sales.reduce((a,s)=>a+Number(s.total||0),0);
- const already=receiptTotalFor(cid,month);
+ const already=receiptTotalForSales(cid,month,sales);
  const due=Math.max(0,total-already);
  openModal(`<h2>Confirmar recebimento</h2><div class="receiptModalInfo"><p><b>Cliente:</b> ${esc(nome)}</p><p><b>Valor em aberto:</b> ${money(due)}</p><label class="receiptAmountLabel"><span>Valor recebido</span><input id="receiptAmount" type="text" inputmode="decimal" value="${due.toFixed(2).replace(".",",")}" placeholder="0,00" autocomplete="off"></label><p class="muted small">Você pode informar um valor maior ou menor que o valor em aberto.</p></div><div class="toolbar receiptModalActions"><button class="btn gold" onclick="registerReceipt('${k}')">Confirmar recebimento</button><button class="btn" onclick="closeModal()">Cancelar</button></div>`);
  setTimeout(()=>{const el=$("#receiptAmount");if(el){el.focus();el.select();}},50);
@@ -329,7 +331,7 @@ function registerReceipt(k){
  const c=state.clients.find(x=>x.id===cid);
  const nome=c?.name||"cliente";
  const total=sales.reduce((a,s)=>a+Number(s.total||0),0);
- const already=receiptTotalFor(cid,month);
+ const already=receiptTotalForSales(cid,month,sales);
  const due=Math.max(0,total-already);
  const el=$("#receiptAmount");
  const raw=el?.value||"";
@@ -343,9 +345,9 @@ function finishReceipt(k,amount){
  const sales=state.sales.filter(s=>s.clientId===cid&&(s.payDate||s.date).slice(0,7)===month&&!s.paid);
  if(!sales.length){closeModal();return;}
  const total=sales.reduce((a,s)=>a+Number(s.total||0),0);
- const already=receiptTotalFor(cid,month);
+ const already=receiptTotalForSales(cid,month,sales);
  const due=Math.max(0,total-already);
- state.receipts.push({id:crypto.randomUUID(),clientId:cid,month,amount,date:today()});
+ state.receipts.push({id:crypto.randomUUID(),clientId:cid,month,amount,date:today(),saleIds:sales.map(s=>s.id)});
  closeModal();
  if(amount>=due){sales.forEach(s=>{s.paid=true;s.paidAt=today()});if(amount>due){const excess=Number((amount-due).toFixed(2));addCredit(cid,excess);toast(`Recebimento registrado. Crédito de ${money(excess)} gerado para a próxima compra.`);}else{toast("Recebimento registrado!");}}
  else {toast(`Recebimento parcial registrado. Restam ${money(due-amount)}.`);}
