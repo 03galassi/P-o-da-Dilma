@@ -29,7 +29,7 @@ function receiptTotalFor(cid,month){return state.receipts.filter(r=>r.clientId==
 function creditTotalFor(cid){return state.credits.filter(c=>c.clientId===cid).reduce((a,c)=>a+Number(c.amount||0),0)}
 function addCredit(cid,amount){if(!cid||amount<=0)return;state.credits.push({id:crypto.randomUUID(),clientId:cid,amount:Number(amount),date:today()});}
 function useCredit(cid,amount){let remaining=Math.max(0,Number(amount)||0);if(!cid||remaining<=0)return 0;for(const c of state.credits.filter(x=>x.clientId===cid&&Number(x.amount)>0)){const use=Math.min(remaining,Number(c.amount));c.amount=Number((Number(c.amount)-use).toFixed(2));remaining-=use;if(remaining<=0)break;}state.credits=state.credits.filter(c=>Number(c.amount)>0.009);return Number((Number(amount)-remaining).toFixed(2));}
-function receivableTotal(){const groups={};state.sales.filter(s=>s.delivered&&!s.paid).forEach(s=>{const month=(s.payment==="prazo"?(s.payDate||s.date):s.date).slice(0,7);const k=s.clientId+"_"+month;(groups[k]??={cid:s.clientId,month,total:0});groups[k].total+=Number(s.total||0)});return Object.values(groups).reduce((a,g)=>a+Math.max(0,g.total-receiptTotalFor(g.cid,g.month)),0)}
+function receivableTotal(){const groups={};state.sales.filter(s=>!s.paid).forEach(s=>{const month=(s.payment==="prazo"?(s.payDate||s.date):s.date).slice(0,7);const k=s.clientId+"_"+month;(groups[k]??={cid:s.clientId,month,total:0});groups[k].total+=Number(s.total||0)});return Object.values(groups).reduce((a,g)=>a+Math.max(0,g.total-receiptTotalFor(g.cid,g.month)),0)}
 function updateBottomNav(){const el=$("#navDueAmount");if(el)el.textContent="R$";updateBadges();}
 function openModal(html){$("#modalBody").innerHTML=html;$("#modal").classList.remove("hidden")}
 function closeModal(){$("#modal").classList.add("hidden")}
@@ -43,14 +43,12 @@ function renderHome(){
  const sales=state.sales.filter(s=>s.date===today());
  const total=sales.reduce((a,s)=>a+Number(s.total),0);
  const due=state.sales.filter(s=>(s.payment==="prazo"&&s.paid!==true)||(s.payment!=="prazo"&&s.delivered&&s.paid!==true));
- const deliveries=sales.filter(s=>!s.delivered).length;
  const costsMonth=state.costs.filter(c=>String(c.date||"").slice(0,7)===monthNow()).reduce((a,c)=>a+Number(c.total||0),0);
  $("#content").innerHTML=`
  <div class="homeDashboard">
- <section class="hero"><img src="${HERO_IMAGE}" alt="Pão da Dilma" onerror="imageFallback(this,'heroFallback')"><div class="heroOverlay"><h1>PÃO<br><span class="gold">DA DILMA</span></h1><p>🚚 ENTREGA RÁPIDA &nbsp; ★ QUALIDADE SEMPRE &nbsp; ♥ CLIENTES SATISFEITOS</p></div></section>
+ <section class="hero"><img src="${HERO_IMAGE}" alt="Pão da Dilma" onerror="imageFallback(this,'heroFallback')"><div class="heroOverlay"><h1>PÃO<br><span class="gold">DA DILMA</span></h1><p>★ QUALIDADE SEMPRE &nbsp; ♥ CLIENTES SATISFEITOS</p></div></section>
  <section class="stats">
   <button type="button" class="stat" onclick="navigate('sales')" aria-label="Abrir vendas"><div class="ico">🛒</div><small>Vendas hoje</small><strong>${money(total)}</strong><small>${sales.length} vendas</small></button>
-  <button type="button" class="stat" onclick="navigate('deliveries')" aria-label="Abrir entregas"><div class="ico">🚚</div><small>Entregas hoje</small><strong>${deliveries}</strong><small>a realizar</small></button>
   <button type="button" class="stat" onclick="navigate('clients')" aria-label="Abrir clientes"><div class="ico">👥</div><small>Clientes</small><strong>${state.clients.length}</strong><small>cadastrados</small></button>
   <button type="button" class="stat" onclick="navigate('receivables')" aria-label="Abrir contas a receber"><div class="ico">💰</div><small>A receber</small><strong>R$</strong><small>ver contas</small></button>
  </section>
@@ -65,7 +63,7 @@ function renderHome(){
 function saleRow(s){
  const c=state.clients.find(x=>x.id===s.clientId)||{name:s.clientName||"Cliente"};
  const initials=String(c.name||"Cliente").split(" ").map(x=>x[0]).slice(0,2).join("");
- return `<div class="listRow"><div class="avatar">${esc(initials)}</div><div><b>${esc(c.name||"Cliente")}</b><div class="muted">${s.time||""}</div></div><div class="details muted">${s.qty} ${s.type==="pao"?"pães":"pães doces"} ${s.unitPrice?` · ${money(s.unitPrice)}/un.`:""}</div><div class="amount"><span class="pill ${s.delivered?"ok":"wait"}">${s.delivered?"Entregue":"A entregar"}</span><br><b>${money(s.total)}</b><div class="saleActions"><button class="btn editSaleBtn" onclick="editSale('${s.id}')">✏️ Editar</button><button class="btn deleteSaleBtn" onclick="deleteSale('${s.id}')">🗑️ Excluir</button></div></div></div>`
+ return `<div class="listRow"><div class="avatar">${esc(initials)}</div><div><b>${esc(c.name||"Cliente")}</b><div class="muted">${s.time||""}</div></div><div class="details muted">${s.qty} ${s.type==="pao"?"pães":"pães doces"} ${s.unitPrice?` · ${money(s.unitPrice)}/un.`:""}</div><div class="amount"><b>${money(s.total)}</b><div class="saleActions"><button class="btn editSaleBtn" onclick="editSale('${s.id}')">✏️ Editar</button><button class="btn deleteSaleBtn" onclick="deleteSale('${s.id}')">🗑️ Excluir</button></div></div></div>`
 }
 function renderClients(filter=""){
  const list=state.clients.filter(c=>(c.name+" "+c.phone+" "+c.address).toLowerCase().includes(filter.toLowerCase()));
@@ -84,7 +82,7 @@ function renderDeliveries(){
 }
 function changeDeliveryDate(v){deliveryViewDate=v||todayDate();renderDeliveries()}
 function renderReceivables(){
- const due=state.sales.filter(s=>s.delivered&&!s.paid);
+ const due=state.sales.filter(s=>!s.paid);
  const groups={};
  due.forEach(s=>{const c=state.clients.find(c=>c.id===s.clientId);const month=(s.payment==="prazo"?(s.payDate||s.date):s.date).slice(0,7);const k=s.clientId+"_"+month;(groups[k]??={client:c,month,total:0,sales:[]});groups[k].total+=Number(s.total||0);groups[k].sales.push(s)});
  Object.values(groups).forEach(g=>{g.received=receiptTotalFor(g.client?.id,g.month);g.balance=Math.max(0,g.total-g.received)});
@@ -211,7 +209,7 @@ function newCost(){
  $("#costForm").onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);state.costs.push({id:crypto.randomUUID(),date:f.get("date"),item:f.get("item"),qty:f.get("qty"),supplier:f.get("supplier"),total:Number(f.get("total")),note:f.get("note")});save();closeModal();toast("Gasto lançado!");renderCosts()};
 }
 function deleteCost(id){if(!confirm("Excluir este gasto?"))return;state.costs=state.costs.filter(c=>c.id!==id);save();renderCosts();toast("Gasto excluído.")}
-function navigate(screen){document.querySelectorAll(".bottomNav button").forEach(b=>b.classList.toggle("active",b.dataset.screen===screen)); if(screen==="home")renderHome();if(screen==="clients")renderClients($("#globalSearch").value);if(screen==="sales")renderSales();if(screen==="deliveries")renderDeliveries();if(screen==="receivables")renderReceivables();if(screen==="more")renderMore();if(screen==="closing")renderClosing()}
+function navigate(screen){document.querySelectorAll(".bottomNav button").forEach(b=>b.classList.toggle("active",b.dataset.screen===screen)); if(screen==="home")renderHome();if(screen==="clients")renderClients($("#globalSearch").value);if(screen==="sales")renderSales();if(screen==="receivables")renderReceivables();if(screen==="more")renderMore();if(screen==="closing")renderClosing()}
 document.querySelectorAll(".bottomNav button").forEach(b=>b.onclick=()=>navigate(b.dataset.screen));
 $("#globalSearch").oninput=e=>{if(document.querySelector(".bottomNav button.active")?.dataset.screen==="clients")renderClients(e.target.value)};
 function newClient(existing=null){
@@ -242,15 +240,14 @@ function newSale(pref="pao"){
  <label>Quantidade<input name="qty" id="saleQty" type="number" min="1" value="1" required></label></div>
  <div class="formGrid saleValuesGrid"><label>Valor unitário<select name="unitPrice" id="unitPrice"><option value="12">R$ 12,00</option><option value="14">R$ 14,00</option><option value="16">R$ 16,00</option><option value="18" selected>R$ 18,00</option></select></label><label>Valor total<input name="total" id="saleTotal" type="number" step="0.01" min="0" value="18.00" readonly required></label></div>
  <div class="formGrid"><label>Pagamento<select name="payment" id="pay"><option value="avista">À vista</option><option value="prazo">A prazo</option><option value="mensal">Mensal</option></select></label>
- <label>Data da entrega<input name="date" type="date" value="${defaultSaleDate()}" required></label></div>
+ <label>Data da venda<input name="date" type="date" value="${defaultSaleDate()}" required></label></div>
  <div id="payDateBox" class="hidden"><label>Data para pagamento<input name="payDate" type="date"></label></div>
- <label>Onde entregar<select name="where"><option value="casa">🏠 Casa</option><option value="trabalho">🏢 Trabalho</option></select></label>
  <button class="btn primary" type="submit">Registrar venda</button></form>`);
  $("#pay").onchange=e=>$("#payDateBox").classList.toggle("hidden",e.target.value!=="prazo");
  const updateSaleTotal=()=>{const qty=Math.max(1,Number($("#saleQty").value||1));const unit=Number($("#unitPrice").value||12);$("#saleTotal").value=(qty*unit).toFixed(2)};
  $("#saleQty").oninput=updateSaleTotal; $("#unitPrice").onchange=updateSaleTotal;
  $("#saleClient").onchange=()=>{const cid=$("#saleClient").value;const cr=creditTotalFor(cid);const el=$("#saleCreditInfo");if(el){el.style.display=cr>0?"block":"none";el.textContent=cr>0?`💳 Crédito disponível para esta compra: ${money(cr)}`:"";}};
- $("#saleForm").onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const clientId=String(f.get("client")||"").trim();if(!clientId){toast("Selecione um cliente antes de registrar a venda.");$("select[name=client]").focus();return;}const client=state.clients.find(c=>c.id===clientId);if(!client){toast("Cliente inválido. Selecione um cliente cadastrado.");return;}const originalTotal=Number(f.get("total"));const creditAvailable=creditTotalFor(clientId);const creditUsed=useCredit(clientId,Math.min(originalTotal,creditAvailable));const finalTotal=Number((originalTotal-creditUsed).toFixed(2));const s={id:crypto.randomUUID(),clientId:clientId,clientName:client.name,clientPhone:client.phone||"",clientAddress:client.address||"",type:f.get("type"),qty:Number(f.get("qty")),unitPrice:Number(f.get("unitPrice")),sugar:f.get("sugar"),total:originalTotal,payment:f.get("payment"),payDate:f.get("payDate")||null,date:f.get("date"),where:f.get("where"),delivered:false,time:new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}),creditUsed};state.sales.push(s);save();closeModal();toast(creditUsed>0?`Venda registrada. Crédito utilizado: ${money(creditUsed)}${finalTotal>0?` · Restante a pagar: ${money(finalTotal)}`:" · Venda totalmente coberta pelo crédito."}`:"Venda registrada!");navigate("sales")}
+ $("#saleForm").onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const clientId=String(f.get("client")||"").trim();if(!clientId){toast("Selecione um cliente antes de registrar a venda.");$("select[name=client]").focus();return;}const client=state.clients.find(c=>c.id===clientId);if(!client){toast("Cliente inválido. Selecione um cliente cadastrado.");return;}const originalTotal=Number(f.get("total"));const creditAvailable=creditTotalFor(clientId);const creditUsed=useCredit(clientId,Math.min(originalTotal,creditAvailable));const finalTotal=Number((originalTotal-creditUsed).toFixed(2));const s={id:crypto.randomUUID(),clientId:clientId,clientName:client.name,clientPhone:client.phone||"",clientAddress:client.address||"",type:f.get("type"),qty:Number(f.get("qty")),unitPrice:Number(f.get("unitPrice")),sugar:f.get("sugar"),total:originalTotal,payment:f.get("payment"),payDate:f.get("payDate")||null,date:f.get("date"),where:f.get("where"),delivered:false,time:new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}),creditUsed};state.sales.push(s);save();closeModal();toast(creditUsed>0?`Venda registrada. Crédito utilizado: ${money(creditUsed)}${finalTotal>0?` · Restante a pagar: ${money(finalTotal)}`:" · Venda totalmente coberta pelo crédito."}`:"Venda registrada!");navigate("receivables")}
 }
 function editSale(id){
  const s=state.sales.find(x=>x.id===id); if(!s)return;
@@ -260,9 +257,8 @@ function editSale(id){
  <div class="formGrid"><label>Tipo<select name="type"><option value="pao" ${s.type==="pao"?"selected":""}>Pão</option><option value="doce" ${s.type==="doce"?"selected":""}>Pão doce</option></select></label>
  <label>Quantidade<input name="qty" id="editSaleQty" type="number" min="1" value="${Number(s.qty)||1}" required></label></div>
  <div class="formGrid saleValuesGrid"><label>Valor unitário<select name="unitPrice" id="editUnitPrice">${[12,14,16,18].map(v=>`<option value="${v}" ${Number(s.unitPrice)===v?"selected":""}>R$ ${v.toFixed(2).replace(".",",")}</option>`).join("")}</select></label><label>Valor total<input name="total" id="editSaleTotal" type="number" step="0.01" min="0" value="${Number(s.total||0).toFixed(2)}" readonly required></label></div>
- <div class="formGrid"><label>Pagamento<select name="payment" id="editPay"><option value="avista" ${s.payment==="avista"?"selected":""}>À vista</option><option value="prazo" ${s.payment==="prazo"?"selected":""}>A prazo</option><option value="mensal" ${s.payment==="mensal"?"selected":""}>Mensal</option></select></label><label>Data da entrega<input name="date" type="date" value="${s.date||todayDate()}" required></label></div>
+ <div class="formGrid"><label>Pagamento<select name="payment" id="editPay"><option value="avista" ${s.payment==="avista"?"selected":""}>À vista</option><option value="prazo" ${s.payment==="prazo"?"selected":""}>A prazo</option><option value="mensal" ${s.payment==="mensal"?"selected":""}>Mensal</option></select></label><label>Data da venda<input name="date" type="date" value="${s.date||todayDate()}" required></label></div>
  <div id="editPayDateBox" class="${s.payment==="prazo"?"":"hidden"}"><label>Data para pagamento<input name="payDate" type="date" value="${s.payDate||""}"></label></div>
- <label>Onde entregar<select name="where"><option value="casa" ${s.where!=="trabalho"?"selected":""}>🏠 Casa</option><option value="trabalho" ${s.where==="trabalho"?"selected":""}>🏢 Trabalho</option></select></label>
  <button class="btn primary" type="submit">Salvar alterações</button></form>`);
  const update=()=>{const q=Math.max(1,Number($("#editSaleQty").value||1));const u=Number($("#editUnitPrice").value||12);$("#editSaleTotal").value=(q*u).toFixed(2)};
  $("#editSaleQty").oninput=update; $("#editUnitPrice").onchange=update; $("#editPay").onchange=e=>$("#editPayDateBox").classList.toggle("hidden",e.target.value!=="prazo");
@@ -329,7 +325,7 @@ function finishReceipt(k,amount){
 }
 function charge(cid,total){const c=state.clients.find(x=>x.id===cid);if(!c)return;wa(c.phone,`Tudo bem ${c.name}, tem uma notinha sua aqui, são ${money(total)}. Consegue mandar pix pra mim?`)}
 function openRoute(){const selected=deliveryViewDate||todayDate();const list=state.sales.filter(s=>s.date===selected&&!s.delivered).map(s=>state.clients.find(c=>c.id===s.clientId)?.address).filter(Boolean);if(!list.length)return toast("Não há entregas pendentes para a data selecionada.");window.open(maps(list.join(" | ")),"_blank")}
-function updateBadges(){const pending=state.sales.filter(s=>s.date===today()&&!s.delivered).length;const db=$("#deliveryBadge");if(db)db.textContent=pending;const nb=$("#notifyCount");if(nb)nb.textContent=state.sales.filter(s=>s.delivered&&!s.paid).length;const nav=$("#navDueAmount");if(nav)nav.textContent="R$"}
+function updateBadges(){const nb=$("#notifyCount");if(nb)nb.textContent=state.sales.filter(s=>!s.paid).length;const nav=$("#navDueAmount");if(nav)nav.textContent="R$"}
 $("#notifyBtn").onclick=()=>navigate("receivables");
 function showAuthScreen(){
  const authScreen=document.getElementById("authScreen");
